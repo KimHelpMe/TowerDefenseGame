@@ -1,4 +1,5 @@
 ﻿#include "TowerDefenseGameMode.h"
+#include "MainMenuWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerSlot.h"
 #include "BaseTower.h"
@@ -47,6 +48,17 @@ void ATowerDefenseGameMode::BeginPlay()
 	}
 
 	OnExpChanged.Broadcast(PlayerLevel, Exp, MaxExp);
+
+	UClass* WidgetClass = StaticLoadClass(
+		UMainMenuWidget::StaticClass(),
+		nullptr,
+		TEXT("/Game/03_UI/WBP_MainMenu.WBP_MainMenu_C"));
+	if (!WidgetClass) WidgetClass = UMainMenuWidget::StaticClass();
+	if (UMainMenuWidget* MainMenuWidget = CreateWidget<UMainMenuWidget>(GetWorld(), WidgetClass))
+	{
+		MainMenuWidget->AddToViewport(100);
+	}
+
 }
 
 void ATowerDefenseGameMode::AddExp(float Amount)
