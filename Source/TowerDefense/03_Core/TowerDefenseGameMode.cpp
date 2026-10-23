@@ -46,26 +46,46 @@ void ATowerDefenseGameMode::BeginPlay()
 
 void ATowerDefenseGameMode::AddExp(float Amount)
 {
-	Exp += Amount;
-	if (!LevelDataTable) return;
+	if (!FMath::IsFinite(Amount) || Amount <= 0.f) return;
 
-	FString RowKeyString = FString::Printf(TEXT("Level_%02d"), PlayerLevel);
-	FLevelDataRow* Row = LevelDataTable->FindRow<FLevelDataRow>(FName(*RowKeyString), TEXT(""));
-
-	if (!Row) return;
-	if (Exp >= Row->MaxExp)
+	Exp = FMath::Max(0.f, Exp + Amount);
+	if (!LevelDataTable)
 	{
-		PlayerLevel++;
-		Exp = 0;
-		AddTowerToken(Row->TokenReward);
-		FString NextRowKey = FString::Printf(TEXT("Level_%02d"), PlayerLevel);
-		FLevelDataRow* NextRow = LevelDataTable->FindRow<FLevelDataRow>(FName(*NextRowKey), TEXT(""));
-		if (NextRow) MaxExp = NextRow->MaxExp;
-		OnExpChanged.Broadcast(PlayerLevel, Exp, MaxExp);  // 레벨업 후 새 MaxExp
+		OnExpChanged.Broadcast(PlayerLevel, Exp, MaxExp);
+		return;
 	}
-	else
+
+	while (true)
 	{
-		OnExpChanged.Broadcast(PlayerLevel, Exp, Row->MaxExp);  // 일반 경험치 증가
+		const FString RowKeyString = FString::Printf(TEXT("Level_%02d"), PlayerLevel);
+		FLevelDataRow* Row = LevelDataTable->FindRow<FLevelDataRow>(FName(*RowKeyString), TEXT(""));
+		if (!Row || !FMath::IsFinite(Row->MaxExp) || Row->MaxExp <= 0.f)
+		{
+			MaxExp = Row ? FMath::Max(0.f, Row->MaxExp) : 0.f;
+			OnExpChanged.Broadcast(PlayerLevel, Exp, MaxExp);
+			return;
+		}
+
+		MaxExp = Row->MaxExp;
+		if (Exp < MaxExp)
+		{
+			OnExpChanged.Broadcast(PlayerLevel, Exp, MaxExp);
+			return;
+		}
+
+		const int32 NextLevel = PlayerLevel + 1;
+		const FString NextRowKey = FString::Printf(TEXT("Level_%02d"), NextLevel);
+		FLevelDataRow* NextRow = LevelDataTable->FindRow<FLevelDataRow>(FName(*NextRowKey), TEXT(""));
+		if (!NextRow || !FMath::IsFinite(NextRow->MaxExp) || NextRow->MaxExp <= 0.f)
+		{
+			Exp = MaxExp;
+			OnExpChanged.Broadcast(PlayerLevel, Exp, MaxExp);
+			return;
+		}
+
+		Exp -= MaxExp;
+		PlayerLevel = NextLevel;
+		AddTowerToken(Row->TokenReward);
 	}
 }
 
@@ -177,4 +197,3 @@ float ATowerDefenseGameMode::GetUpgradeBonus(FGameplayTag StatTag)
 	UE_LOG(LogTemp, Warning, TEXT("GetUpgradeBonus: %s = %f"), *StatTag.ToString(), TotalBonus);
 	return TotalBonus;
 }
-
