@@ -80,9 +80,11 @@ void AGridTile::OnTileClicked(UPrimitiveComponent* TouchedComponent, FKey Button
 	if (!GameMode) return;
 	if (!GameMode->bIsPlacementMode) return;
 
-	GameMode->SpawnTowerSlot(GetActorLocation());
-	bIsOccupied = true;
-	SetHighlight(false);
+	if (GameMode->SpawnTowerSlot(GetActorLocation()))
+	{
+		bIsOccupied = true;
+		SetHighlight(false);
+	}
 
 }
 
@@ -99,4 +101,3 @@ void AGridTile::OnTileEndCursorOver(UPrimitiveComponent* TouchedComponent)
 	if (!GridManager) return;
 	GridManager->HidePreview();
 }
-

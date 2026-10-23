@@ -143,36 +143,40 @@ void ATowerDefenseGameMode::EnablePlacementMode()
 	if (GridManager) GridManager->EnablePlacementMode();
 }
 
-void ATowerDefenseGameMode::SpawnTowerSlot(FVector Location)
+bool ATowerDefenseGameMode::SpawnTowerSlot(FVector Location)
 {
-	if (!TowerSlotClass) return;
-	if (TowerToken > 0)
+	if (bIsGameOver || !TowerSlotClass || !IsValid(GridManager) || TowerToken < 1.f || CurrentTowerSlot >= MaxTowerSlot)
 	{
-		if (CurrentTowerSlot < MaxTowerSlot)
+		return false;
+	}
+
+	AGridTile* TargetTile = nullptr;
+	for (AGridTile* Tile : GridManager->GridTiles)
+	{
+		if (IsValid(Tile) && FVector::Dist(Tile->GetActorLocation(), Location) < 10.f)
 		{
-			ATowerSlot* TowerSlot = GetWorld()->SpawnActor<ATowerSlot>(TowerSlotClass, Location, FRotator::ZeroRotator);
-
-			if (GridManager)
-			{
-				for (AGridTile* Tile : GridManager->GridTiles)
-				{
-					if (Tile && FVector::Dist(Tile->GetActorLocation(), Location) < 10.f)
-					{
-						TowerSlot->OwnerTile = Tile;
-						break;
-					}
-				}
-				if (!TowerSlot->OwnerTile)
-				{
-				}
-			}
-
-			AddTowerToken(-1);
-			CurrentTowerSlot += 1;
-			bIsPlacementMode = false;
-			if (GridManager) GridManager->DisablePlacementMode();
+			TargetTile = Tile;
+			break;
 		}
 	}
+
+	if (!IsValid(TargetTile) || TargetTile->bIsOccupied || !GetWorld()) return false;
+
+	ATowerSlot* TowerSlot = GetWorld()->SpawnActor<ATowerSlot>(
+		TowerSlotClass,
+		Location,
+		FRotator::ZeroRotator);
+	if (!IsValid(TowerSlot)) return false;
+
+	TowerSlot->OwnerTile = TargetTile;
+	TargetTile->bIsOccupied = true;
+	TargetTile->SetHighlight(false);
+
+	AddTowerToken(-1.f);
+	CurrentTowerSlot++;
+	bIsPlacementMode = false;
+	GridManager->DisablePlacementMode();
+	return true;
 }
 
 

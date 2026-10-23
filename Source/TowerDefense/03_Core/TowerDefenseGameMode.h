@@ -143,7 +143,7 @@ public:
 
 	// 슬롯 스폰 + 설치모드 OFF.
 	UFUNCTION(BlueprintCallable)
-	void SpawnTowerSlot(FVector Location);
+	bool SpawnTowerSlot(FVector Location);
 
 
 
