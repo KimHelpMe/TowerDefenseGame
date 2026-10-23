@@ -54,6 +54,18 @@ void UStatComponent::RemoveBuff(AActor* Source)
 	RecalculateStats();
 }
 
+void UStatComponent::RemoveBuffByKey(FName SourceKey)
+{
+	if (SourceKey.IsNone()) return;
+
+	ActiveBuffs.RemoveAll([SourceKey](const FBuffEffect& Buff)
+		{
+			return Buff.SourceKey == SourceKey;
+		});
+
+	RecalculateStats();
+}
+
 void UStatComponent::RecalculateStats()
 {
 	CurrentStats = BaseStats;

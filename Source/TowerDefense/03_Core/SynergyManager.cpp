@@ -70,7 +70,8 @@ void ASynergyManager::UpdateSynergies()
 	for (FName RowName : RowNames)
 	{
 		FSynergyDataRow* Row = SynergyDataTable->FindRow<FSynergyDataRow>(RowName, TEXT(""));
-		if (!Row) continue;
+		if (!Row || !Row->SynergyTag.IsValid()) continue;
+		const FName BuffSourceKey(*FString::Printf(TEXT("Synergy_%s"), *RowName.ToString()));
 
 		// 현재 태그의 타워 수 가져오기
 		int32 TowerCount = TagCounts.FindRef(Row->SynergyTag);
@@ -96,8 +97,8 @@ void ASynergyManager::UpdateSynergies()
 				if (!Stat) continue;
 				if (!Stat->SynergyTags.HasTag(Row->SynergyTag)) continue;
 
-				// 이전 버프 제거.
-				Stat->RemoveBuff(this);
+				// 현재 시너지 행의 버프만 제거.
+				Stat->RemoveBuffByKey(BuffSourceKey);
 
 				// 새 단계 버프 적용(0 이면 버프 없음).
 				if (NewStep > 0)
@@ -105,6 +106,7 @@ void ASynergyManager::UpdateSynergies()
 					for (FBuffEffect Effect : Row->Steps[NewStep - 1].Effects)
 					{
 						Effect.Source = this;
+						Effect.SourceKey = BuffSourceKey;
 						Stat->ModifyStat(Effect);
 					}
 				}

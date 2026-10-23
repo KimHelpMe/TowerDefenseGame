@@ -27,5 +27,8 @@ struct FBuffEffect
     UPROPERTY()
     AActor* Source = nullptr;
 
+    UPROPERTY()
+    FName SourceKey = NAME_None;
+
 
 };

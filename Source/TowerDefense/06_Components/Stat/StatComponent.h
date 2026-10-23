@@ -67,6 +67,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void RemoveBuff(AActor* Source);
 
+	UFUNCTION(BlueprintCallable)
+	void RemoveBuffByKey(FName SourceKey);
+
 public:
 
 	static FGameplayTag GetTag(const FString& TagName)
