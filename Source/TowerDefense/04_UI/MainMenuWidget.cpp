@@ -88,23 +88,6 @@ void UMainMenuWidget::BuildMenu()
 	UVerticalBox* Content = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("MenuContent"));
 	Panel->SetContent(Content);
 
-	UTextBlock* Brand = CreateMenuText(FText::FromString(TEXT("ARCANE FRONTIER")), 15, FLinearColor(0.35f, 0.78f, 0.84f, 1.f), ETextJustify::Center);
-	Content->AddChildToVerticalBox(Brand);
-
-	USizeBox* BrandSpace = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("BrandSpacing"));
-	BrandSpace->SetHeightOverride(24.f);
-	Content->AddChildToVerticalBox(BrandSpace);
-
-	UTextBlock* Title = CreateMenuText(FText::FromString(TEXT("균열의 수호자")), 46, FLinearColor(0.92f, 0.82f, 0.60f, 1.f), ETextJustify::Center);
-	Content->AddChildToVerticalBox(Title);
-
-	USizeBox* TitleSpace = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("TitleSpacing"));
-	TitleSpace->SetHeightOverride(12.f);
-	Content->AddChildToVerticalBox(TitleSpace);
-
-	UTextBlock* Subtitle = CreateMenuText(FText::FromString(TEXT("전략을 세우고, 몰려오는 적을 막아라")), 17, FLinearColor(0.68f, 0.72f, 0.82f, 1.f), ETextJustify::Center);
-	Content->AddChildToVerticalBox(Subtitle);
-
 	USizeBox* DividerSpace = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("DividerSpacing"));
 	DividerSpace->SetHeightOverride(34.f);
 	Content->AddChildToVerticalBox(DividerSpace);
