@@ -51,16 +51,13 @@ void AMagicTower::BeginPlay()
 
 void AMagicTower::Attack_Implementation()
 {
-	Super::Attack_Implementation();
+	CurrentTargets.RemoveAll([](AEnemy* Enemy)
+	{
+		return !IsValid(Enemy) || Enemy->bIsDead;
+	});
+	if (CurrentTargets.IsEmpty() || !IsValid(AttackTypeComponent)) return;
 
-	if (!AttackTypeComponent)
-	{
-		return;
-	}
-	if (CurrentTargets.IsEmpty())
-	{
-		return;
-	}
+	Super::Attack_Implementation();
 	AttackTypeComponent->ExecuteAttack(CurrentTargets);
 }
 
@@ -74,7 +71,7 @@ void AMagicTower::OnEnemyEnter(UPrimitiveComponent* OverlappedComp,
 {
 
 	AEnemy* enemy = Cast<AEnemy>(OtherActor);
-	if (!enemy) return;
+	if (!IsValid(enemy) || enemy->bIsDead || CurrentTargets.Contains(enemy)) return;
 
 
 	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
@@ -128,7 +125,12 @@ void AMagicTower::OnEnemyExit(UPrimitiveComponent* OverlappedComp,
 
 void AMagicTower::OnManaFull()
 {
-	if (CurrentTargets.IsEmpty()) return;
+	CurrentTargets.RemoveAll([](AEnemy* Enemy)
+	{
+		return !IsValid(Enemy) || Enemy->bIsDead;
+	});
+	if (CurrentTargets.IsEmpty() || !IsValid(ManaComponent) || !IsValid(AttackTypeComponent)) return;
+
 	ManaComponent->ConsumeMana();
 	Attack();
 }

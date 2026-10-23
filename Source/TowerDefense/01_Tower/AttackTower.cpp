@@ -62,10 +62,10 @@ void AAttackTower::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	CurrentTargets.RemoveAll([](AEnemy* Enemy)
-		{
-			return !IsValid(Enemy);
-		});
-
+	{
+		return !IsValid(Enemy) || Enemy->bIsDead;
+	});
+	SetTurretTarget(CurrentTargets.IsEmpty() ? nullptr : CurrentTargets[0]);
 }
 
 
@@ -73,10 +73,7 @@ void AAttackTower::OnEnemyEnter(UPrimitiveComponent* OverlappedComp, AActor* Oth
 {
 	AEnemy* enemy = Cast<AEnemy>(OtherActor);
 
-	if(!enemy)
-	{
-		return;
-	}
+	if (!IsValid(enemy) || enemy->bIsDead || CurrentTargets.Contains(enemy)) return;
 
 
 	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
@@ -130,13 +127,13 @@ void AAttackTower::OnEnemyExit(UPrimitiveComponent* OverlappedComp, AActor* Othe
 
 void AAttackTower::Attack_Implementation()
 {
-	Super::Attack_Implementation();
-
-	if (!AttackTypeComponent)
+	CurrentTargets.RemoveAll([](AEnemy* Enemy)
 	{
+		return !IsValid(Enemy) || Enemy->bIsDead;
+	});
+	if (CurrentTargets.IsEmpty() || !IsValid(AttackTypeComponent)) return;
 
-		return;
-	}
+	Super::Attack_Implementation();
 	AttackTypeComponent->ExecuteAttack(CurrentTargets);
 }
 
