@@ -17,6 +17,7 @@ class TOWERDEFENSE_API UMainMenuWidget : public UUserWidget
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
 
 private:
 	void BuildMenu();

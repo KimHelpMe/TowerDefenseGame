@@ -1,8 +1,13 @@
 #include "MainMenuWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/CheckBox.h"
+#include "Components/ComboBoxString.h"
+#include "GameFramework/GameUserSettings.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
@@ -29,6 +34,8 @@ APlayerController* UMainMenuWidget::GetMenuPlayerController() const
 void UMainMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	StartButton = Cast<UButton>(GetWidgetFromName(TEXT("StartBattleButton")));
+	QuitButton = Cast<UButton>(GetWidgetFromName(TEXT("SettingsButton")));
 	SetIsFocusable(true);
 
 	if (StartButton)
@@ -173,5 +180,38 @@ void UMainMenuWidget::HandleStartClicked()
 
 void UMainMenuWidget::HandleQuitClicked()
 {
-	UKismetSystemLibrary::QuitGame(this, GetMenuPlayerController(), EQuitPreference::Quit, false);
+
+	UWidget* SettingsPanel = GetWidgetFromName(TEXT("SettingsPanel"));
+	UGameUserSettings* Settings = UGameUserSettings::GetGameUserSettings();
+	if (!SettingsPanel || !Settings) return;
+	UCheckBox* Fullscreen = Cast<UCheckBox>(GetWidgetFromName(TEXT("FullscreenOption")));
+	UCheckBox* VSync = Cast<UCheckBox>(GetWidgetFromName(TEXT("VSyncOption")));
+	UComboBoxString* Quality = Cast<UComboBoxString>(GetWidgetFromName(TEXT("QualityOption")));
+	if (SettingsPanel->GetVisibility() == ESlateVisibility::Collapsed)
+	{
+		if (Fullscreen) Fullscreen->SetIsChecked(Settings->GetFullscreenMode() != EWindowMode::Windowed);
+		if (VSync) VSync->SetIsChecked(Settings->IsVSyncEnabled());
+		if (Quality) Quality->SetSelectedIndex(FMath::Clamp(Settings->GetOverallScalabilityLevel(), 0, 3));
+		SettingsPanel->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		if (Fullscreen) Settings->SetFullscreenMode(Fullscreen->IsChecked() ? EWindowMode::WindowedFullscreen : EWindowMode::Windowed);
+		if (VSync) Settings->SetVSyncEnabled(VSync->IsChecked());
+		if (Quality && Quality->GetSelectedIndex() != INDEX_NONE) Settings->SetOverallScalabilityLevel(Quality->GetSelectedIndex());
+		Settings->ApplySettings(false);
+		Settings->SaveSettings();
+		SettingsPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UMainMenuWidget::NativeTick(const FGeometry& Geometry, float DeltaTime)
+{
+    Super::NativeTick(Geometry, DeltaTime);
+    float X = 0.f, Y = 0.f;
+    if (!UWidgetLayoutLibrary::GetMousePositionScaledByDPI(GetMenuPlayerController(), X, Y)) return;
+    TArray<UUserWidget*> Widgets;
+    UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, UUserWidget::StaticClass(), true);
+    for (UUserWidget* Widget : Widgets)
+        if (Widget && Widget->GetClass()->GetName().Contains(TEXT("WBP_Cursor"))) Widget->SetPositionInViewport(FVector2D(X, Y), false);
 }
