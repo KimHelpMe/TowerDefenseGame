@@ -308,7 +308,7 @@ void AGachaManager::SelectItem(int32 Index)
 
 void AGachaManager::Reload()
 {
-	if (!CurrentSlot) return;
+	if (!IsValid(CurrentSlot)) return;
 
 	if (CurrentSlot->ReloadCount > 0)
 	{
@@ -320,25 +320,22 @@ void AGachaManager::Reload()
 		CurrentSlot->bCanAbandon = true;
 	}
 
-	if(GachaWidget)
+	if (IsValid(GachaWidget))
 	{
 		GachaWidget->UpdateReloadUI(CurrentSlot->ReloadCount, CurrentSlot->bCanAbandon);
 	}
-
-
 }
-
 
 void AGachaManager::AbandonGacha()
 {
-	if (!CurrentSlot) return;
+	if (!IsValid(CurrentSlot) || !CurrentSlot->bCanAbandon) return;
 	CloseGacha();
 
 	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(
 		UGameplayStatics::GetGameMode(GetWorld()));
 	if (GameMode) GameMode->CurrentTowerSlot--;
 
-	if (CurrentSlot->OwnerTile)
+	if (IsValid(CurrentSlot->OwnerTile))
 	{
 		CurrentSlot->OwnerTile->bIsOccupied = false;
 		CurrentSlot->OwnerTile->SetHighlight(false);
@@ -347,7 +344,6 @@ void AGachaManager::AbandonGacha()
 	CurrentSlot->Destroy();
 	CurrentSlot = nullptr;
 }
-
 
 TArray<FGachaCardInfo> AGachaManager::BuildCardInfos(const TArray<TSubclassOf<AActor>>& Items)
 {
