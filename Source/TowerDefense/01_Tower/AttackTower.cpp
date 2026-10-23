@@ -143,9 +143,5 @@ void AAttackTower::Attack_Implementation()
 
 float AAttackTower::GetRangeRadius()
 {
-	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
-	if (!TowerStat) return 0.f;
-	float RangeDecal = TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackRange"));
-
-	return RangeDecal;
+	return IsValid(TowerAttackRangeComponent) ? TowerAttackRangeComponent->GetScaledSphereRadius() : 0.f;
 }

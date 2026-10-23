@@ -5,6 +5,7 @@
 #include "SynergyManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "EpicTowerManager.h"
+#include "UObject/ConstructorHelpers.h"
 
 ABaseTower::ABaseTower()
 {
@@ -18,6 +19,11 @@ ABaseTower::ABaseTower()
 	RangeDecalComponent = CreateDefaultSubobject<UDecalComponent>(TEXT("RangeDecalComponent"));
 	RangeDecalComponent->SetupAttachment(RootComponent);
 	RangeDecalComponent->SetVisibility(false);
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> RangeMaterial(TEXT("/Game/05_Materials/M_RangeDecal.M_RangeDecal"));
+	if (RangeMaterial.Succeeded())
+	{
+		RangeDecalComponent->SetDecalMaterial(RangeMaterial.Object);
+	}
 
 
 	TowerMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TowerMeshComponent"));
@@ -197,17 +203,18 @@ void ABaseTower::OnSelected(ATowerSlot* Slot)
 // Tower Info.
 void ABaseTower::OnTowerClicked(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)
 {
-	// 이미 열려있으면 닫기
 	if (TowerInfoWidget && TowerInfoWidget->IsInViewport())
 	{
-		RangeDecalComponent->SetVisibility(false);
+		if (RangeDecalComponent)
+		{
+			RangeDecalComponent->SetVisibility(false);
+		}
 		TowerInfoWidget->CloseWidget();
 		return;
 	}
 
 	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
-	if (!TowerStat) return;
-	if (!TowerInfoWidgetClass) return;
+	if (!TowerStat || !TowerInfoWidgetClass) return;
 
 	TowerInfoWidget = CreateWidget<UTowerInfoWidget>(GetWorld(), TowerInfoWidgetClass);
 	if (!TowerInfoWidget) return;
@@ -215,13 +222,19 @@ void ABaseTower::OnTowerClicked(UPrimitiveComponent* TouchedComponent, FKey Butt
 	TowerInfoWidget->InitWidget(TowerStat);
 	TowerInfoWidget->AddToViewport();
 
-	float Range = GetRangeRadius();
-	RangeDecalComponent->DecalSize = FVector(100.f, Range, Range);
-	RangeDecalComponent->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
-	RangeDecalComponent->SetVisibility(true);
+	const float Range = GetRangeRadius();
+	if (RangeDecalComponent && Range > 0.f)
+	{
+		RangeDecalComponent->DecalSize = FVector(100.f, Range, Range);
+		RangeDecalComponent->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
+		RangeDecalComponent->SetVisibility(true);
+	}
+	else if (RangeDecalComponent)
+	{
+		RangeDecalComponent->SetVisibility(false);
+	}
 }
-
 float ABaseTower::GetRangeRadius()
 {
-	return 0.f;
+	return IsValid(TowerAttackRangeComponent) ? TowerAttackRangeComponent->GetScaledSphereRadius() : 0.f;
 }

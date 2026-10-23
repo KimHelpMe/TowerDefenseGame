@@ -23,6 +23,9 @@ void ABuffTower::BeginPlay()
 
 float ABuffTower::GetRangeRadius()
 {
-	if (!BuffRangeComponent) return 0.f;
-	return BuffRangeComponent->GetScaledSphereRadius();
+	if (IsValid(BuffComponent) && BuffComponent->BuffRadius > 0.f)
+	{
+		return BuffComponent->BuffRadius;
+	}
+	return IsValid(BuffRangeComponent) ? BuffRangeComponent->GetScaledSphereRadius() : 0.f;
 }
