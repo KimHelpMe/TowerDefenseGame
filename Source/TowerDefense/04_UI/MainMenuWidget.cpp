@@ -51,7 +51,7 @@ void UMainMenuWidget::NativeConstruct()
 
 	if (PlayerController)
 	{
-		PlayerController->bShowMouseCursor = true;
+		PlayerController->bShowMouseCursor = false;
 		FInputModeUIOnly InputMode;
 		InputMode.SetWidgetToFocus(TakeWidget());
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -181,7 +181,7 @@ void UMainMenuWidget::HandleStartClicked()
 
 	if (APlayerController* PlayerController = GetMenuPlayerController())
 	{
-		PlayerController->bShowMouseCursor = true;
+		PlayerController->bShowMouseCursor = false;
 		PlayerController->SetInputMode(FInputModeGameAndUI());
 	}
 
