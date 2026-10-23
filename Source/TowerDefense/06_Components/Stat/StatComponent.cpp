@@ -100,13 +100,14 @@ void UStatComponent::RecalculateStats()
 	}
 
 
-	float CurrentHP = GetStat(GetTag("Stat.HP"));
-	float MaxHP = GetStat(GetTag("Stat.MaxHP"));
+	const FGameplayTag HPTag = GetTag("Stat.HP");
+	const float CurrentHP = GetStat(HPTag);
+	const float MaxHP = GetStat(GetTag("Stat.MaxHP"));
 
-	if (MaxHP > 0 && CurrentHP > MaxHP)
+	if (FMath::IsFinite(MaxHP) && MaxHP > 0.f && CurrentHP > MaxHP)
 	{
-		CurrentHP = MaxHP;
-		BaseStats.Add(GetTag("Stat.HP"), MaxHP);
+		BaseStats.Add(HPTag, MaxHP);
+		CurrentStats.Add(HPTag, MaxHP);
 	}
 
 }
