@@ -3,6 +3,7 @@
 #include "TowerStatComponent.h"
 #include "GachaManager.h"
 #include "SynergyManager.h"
+#include "TowerSlot.h"
 #include "EpicNotifyWidget.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -41,32 +42,38 @@ void AEpicTowerManager::CheckConditions(const TArray<ABaseTower*>& FieldTowers)
 		if (UnlockedEpicTowers.Contains(Row->EpicTowerClass)) continue;
 		if (PendingFusionTowers.Contains(Row->EpicTowerClass)) continue;
 
-		// 모든 조건 만족 여부 체크.
+		// 각 조건은 서로 다른 타워가 충족해야 함.
 		bool bAllConditionsMet = true;
+		TSet<ABaseTower*> MatchedTowers;
 		for (const FEpicTowerConditionEntry& Condition : Row->Conditions)
 		{
-			bool bConditionMet = false;
-			for (ABaseTower* Tower : FieldTowers)
-			{
-				UTowerStatComponent* Stat = Tower->GetComponentByClass<UTowerStatComponent>();
-				if (!Stat) continue;
-
-				if (!Condition.TowerClass) continue;
-
-				if (Tower->IsA(Condition.TowerClass) &&
-					Stat->CurrentLevel >= Condition.RequiredLevel)
-				{
-					bConditionMet = true;
-					break;
-				}
-
-			}
-			if (!bConditionMet)
+			if (!Condition.TowerClass)
 			{
 				bAllConditionsMet = false;
 				break;
 			}
 
+			ABaseTower* MatchedTower = nullptr;
+			for (ABaseTower* Tower : FieldTowers)
+			{
+				if (!IsValid(Tower) || MatchedTowers.Contains(Tower)) continue;
+
+				UTowerStatComponent* Stat = Tower->GetComponentByClass<UTowerStatComponent>();
+				if (!IsValid(Stat)) continue;
+
+				if (Tower->IsA(Condition.TowerClass) && Stat->CurrentLevel >= Condition.RequiredLevel)
+				{
+					MatchedTower = Tower;
+					break;
+				}
+			}
+
+			if (!IsValid(MatchedTower))
+			{
+				bAllConditionsMet = false;
+				break;
+			}
+			MatchedTowers.Add(MatchedTower);
 		}
 
 		// 모든 조건 만족인 경우.
@@ -88,72 +95,99 @@ void AEpicTowerManager::CheckConditions(const TArray<ABaseTower*>& FieldTowers)
 			{
 				PendingFusionTowers.Add(Row->EpicTowerClass);
 
-				// GachaManager PendingFusionTowers에도 추가 ← 누락
 				AGachaManager* GachaManager = Cast<AGachaManager>(
 					UGameplayStatics::GetActorOfClass(GetWorld(), AGachaManager::StaticClass()));
 				if (GachaManager)
 				{
 					GachaManager->PendingFusionTowers.Add(Row->EpicTowerClass);
 				}
-
 			}
-			// 알팀 텍스트 표시
 			ShowNotifyText(Row->NotifyText);
 		}
-
 	}
-
 }
-
-
 
 void AEpicTowerManager::FuseEpicTower(
 	TSubclassOf<AActor> EpicTowerClass,
-	const TArray<ABaseTower*>& FieldTowers, 
-	AGachaManager* GachaManager, 
+	const TArray<ABaseTower*>& FieldTowers,
+	AGachaManager* GachaManager,
 	ASynergyManager* SynergyManager)
 {
+	if (!EpicTowerDataTable || !EpicTowerClass) return;
 
 	TArray<FName> RowNames = EpicTowerDataTable->GetRowNames();
 	for (FName RowName : RowNames)
 	{
 		FEpicTowerDataRow* Row = EpicTowerDataTable->FindRow<FEpicTowerDataRow>(RowName, TEXT(""));
-		if (!Row) continue;
-		if (Row->EpicTowerClass != EpicTowerClass) continue;
+		if (!Row || Row->EpicTowerClass != EpicTowerClass) continue;
 
-		// 조건에 맞는 재료 타워 찾아서 소멸.
+		TArray<ABaseTower*> TowersToConsume;
+		TSet<ABaseTower*> MatchedTowers;
+		bool bCanFuse = true;
 		for (const FEpicTowerConditionEntry& Condition : Row->Conditions)
 		{
+			if (!Condition.TowerClass)
+			{
+				bCanFuse = false;
+				break;
+			}
+
+			ABaseTower* MatchedTower = nullptr;
 			for (ABaseTower* Tower : FieldTowers)
 			{
+				if (!IsValid(Tower) || MatchedTowers.Contains(Tower)) continue;
+
 				UTowerStatComponent* Stat = Tower->GetComponentByClass<UTowerStatComponent>();
-				if (!Stat) continue;
-				if (Tower->GetClass() == Condition.TowerClass &&
-					Stat->CurrentLevel >= Condition.RequiredLevel)
+				if (!IsValid(Stat)) continue;
+
+				if (Tower->IsA(Condition.TowerClass) && Stat->CurrentLevel >= Condition.RequiredLevel)
 				{
-					// SynergyManager에서 제거.
-					if (SynergyManager)
-					{
-						SynergyManager->UnregisterTower(Tower);
-					}
-					// 타워 소멸.
-					Tower->Destroy();
+					MatchedTower = Tower;
 					break;
 				}
 			}
+
+			if (!IsValid(MatchedTower))
+			{
+				bCanFuse = false;
+				break;
+			}
+
+			MatchedTowers.Add(MatchedTower);
+			TowersToConsume.Add(MatchedTower);
 		}
-		// PendingFusionTowers에서 제거.
+
+		// 재료를 모두 찾은 경우에만 슬롯과 타워를 소비.
+		if (!bCanFuse) return;
+
+		for (ABaseTower* Tower : TowersToConsume)
+		{
+			if (!IsValid(Tower)) continue;
+
+			if (SynergyManager)
+			{
+				SynergyManager->UnregisterTower(Tower);
+			}
+
+			ATowerSlot* OwnerSlot = Tower->OwnerSlot;
+			if (IsValid(OwnerSlot) && OwnerSlot->InstalledTower == Tower)
+			{
+				OwnerSlot->InstalledTower = nullptr;
+				OwnerSlot->bIsOccupied = false;
+				if (IsValid(OwnerSlot->TowerSlotMesh)) OwnerSlot->TowerSlotMesh->SetVisibility(true);
+			}
+
+			Tower->Destroy();
+		}
+
 		PendingFusionTowers.Remove(EpicTowerClass);
-		if (GachaManager)
+		if (IsValid(GachaManager))
 		{
 			GachaManager->PendingFusionTowers.Remove(EpicTowerClass);
 		}
+		return;
 	}
-
-
 }
-
-
 
 void AEpicTowerManager::ShowNotifyText(const FString& Text)
 {
