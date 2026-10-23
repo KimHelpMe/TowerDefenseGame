@@ -17,38 +17,48 @@ void UManaComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ManaRegenInterval을 보너스에 따라 줄임.
+	if (!FMath::IsFinite(MaxMana) || MaxMana <= 0.f) MaxMana = 100.f;
+	if (!FMath::IsFinite(CurrentMana)) CurrentMana = 0.f;
+	CurrentMana = FMath::Clamp(CurrentMana, 0.f, MaxMana);
+	if (!FMath::IsFinite(ManaRegenRate)) ManaRegenRate = 0.f;
+	ManaRegenRate = FMath::Max(0.f, ManaRegenRate);
+	if (!FMath::IsFinite(ManaCost)) ManaCost = MaxMana;
+	ManaCost = FMath::Clamp(ManaCost, 0.f, MaxMana);
+	if (!FMath::IsFinite(ManaRegenInterval) || ManaRegenInterval <= 0.f) ManaRegenInterval = 1.f;
+
 	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	float ManaRegenBonus = GameMode ? GameMode->GetUpgradeBonus(
+	const float ManaRegenBonus = GameMode ? GameMode->GetUpgradeBonus(
 		UStatComponent::GetTag("Upgrade.ManaRegen")) : 0.f;
+	const float SafeManaRegenBonus = FMath::IsFinite(ManaRegenBonus) ? ManaRegenBonus : 0.f;
+	const float FinalManaRegenInterval = FMath::Max(0.01f, ManaRegenInterval * (1.f - SafeManaRegenBonus));
 
-	float FinalManaRegenInterval = ManaRegenInterval * (1.f - ManaRegenBonus);
-
-	GetWorld()->GetTimerManager().SetTimer(ManaRegenTimerHandle, this, &UManaComponent::RegenMana, FinalManaRegenInterval, true);
+	GetWorld()->GetTimerManager().SetTimer(
+		ManaRegenTimerHandle,
+		this,
+		&UManaComponent::RegenMana,
+		FinalManaRegenInterval,
+		true);
 }
 
 void UManaComponent::RegenMana()
 {
-	CurrentMana += ManaRegenRate;
-	CurrentMana = FMath::Clamp(CurrentMana, 0.f, MaxMana);
-	UE_LOG(LogTemp, Warning, TEXT("CurrentMana: %f / %f"), CurrentMana, MaxMana);
+	if (!FMath::IsFinite(MaxMana) || MaxMana <= 0.f) return;
+	if (!FMath::IsFinite(CurrentMana)) CurrentMana = 0.f;
 
-	// 마나 변경 시 항상 broadcast
+	CurrentMana = FMath::Clamp(CurrentMana + ManaRegenRate, 0.f, MaxMana);
+	UE_LOG(LogTemp, Warning, TEXT("CurrentMana: %f / %f"), CurrentMana, MaxMana);
 	OnManaChanged.Broadcast(CurrentMana / MaxMana);
 
-	if (CurrentMana >= MaxMana)
+	if (CurrentMana >= MaxMana && bAutoFire)
 	{
-		if (bAutoFire)  // == true 생략 가능
-		{
-			OnManaFull.Broadcast();
-		}
-		// bAutoFire = false면 아무것도 안 함 (UI는 OnManaChanged로 이미 업데이트됨)
+		OnManaFull.Broadcast();
 	}
 }
 
 void UManaComponent::ConsumeMana()
 {
-	CurrentMana -= ManaCost;
-	CurrentMana = FMath::Clamp(CurrentMana, 0.f, MaxMana);
+	if (!FMath::IsFinite(MaxMana) || MaxMana <= 0.f) return;
+
+	CurrentMana = FMath::Clamp(CurrentMana - ManaCost, 0.f, MaxMana);
 	OnManaChanged.Broadcast(CurrentMana / MaxMana);
 }
