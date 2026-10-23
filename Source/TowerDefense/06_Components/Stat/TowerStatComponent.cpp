@@ -89,7 +89,7 @@ void UTowerStatComponent::InitFromDataTable()
         ABaseTower* Tower = Cast<ABaseTower>(GetOwner());
         if (Tower)
         {
-            Tower->TowerMeshComponent->OnClicked.AddDynamic(Tower, &ABaseTower::OnTowerClicked);
+            Tower->TowerMeshComponent->OnClicked.AddUniqueDynamic(Tower, &ABaseTower::OnTowerClicked);
         }
 
         // 아이콘 적용.
@@ -101,65 +101,64 @@ void UTowerStatComponent::InitFromDataTable()
 
 void UTowerStatComponent::LevelUp()
 {
-    // 1. 유효성 체크
-    ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(
-        UGameplayStatics::GetGameMode(GetWorld()));
-        if (!GameMode) return;
-    if (CurrentLevel >= MaxLevel) return;
-    if (!TowerDataTable) return;
+	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(
+		UGameplayStatics::GetGameMode(GetWorld()));
+	if (!GameMode) return;
+	if (CurrentLevel >= MaxLevel || !TowerDataTable) return;
 
-    // 2. OldTower / NextLevelClass 체크 (Gold 차감 전)
-    ABaseTower* OldTower = Cast<ABaseTower>(GetOwner());
-    if (!OldTower) return;
-    if (!OldTower->NextLevelClass) return;
+	ABaseTower* OldTower = Cast<ABaseTower>(GetOwner());
+	if (!IsValid(OldTower) || !OldTower->NextLevelClass) return;
 
-    // 3. Row 유효 체크
-    FString RowKeyString = TowerRowName.ToString() + "_Lv" + FString::FromInt(CurrentLevel + 1);
-    FTowerDataRow* Row = TowerDataTable->FindRow<FTowerDataRow>(FName(*RowKeyString), TEXT(""));
-    if (!Row) return;
+	ATowerSlot* OldOwnerSlot = OldTower->OwnerSlot;
+	if (!IsValid(OldOwnerSlot)) return;
 
-    // 4. Gold 체크 및 차감
-    if (GameMode->Gold < Row->GoldCost) return;
-    GameMode->Gold -= Row->GoldCost;
+	const FString RowKeyString = TowerRowName.ToString() + TEXT("_Lv") + FString::FromInt(CurrentLevel + 1);
+	FTowerDataRow* Row = TowerDataTable->FindRow<FTowerDataRow>(FName(*RowKeyString), TEXT(""));
+	if (!Row || GameMode->Gold < Row->GoldCost) return;
 
-    // 5. NewTower 스폰
-    ABaseTower* NewTower = GetWorld()->SpawnActor<ABaseTower>(
-        OldTower->NextLevelClass, OldTower->GetActorLocation(), FRotator::ZeroRotator);
-    if (!NewTower) return;
+	ABaseTower* NewTower = GetWorld()->SpawnActor<ABaseTower>(
+		OldTower->NextLevelClass, OldTower->GetActorLocation(), FRotator::ZeroRotator);
+	if (!IsValid(NewTower)) return;
 
-    // 6. CurrentLevel 이전.
-    NewTower->TowerStatComponent->CurrentLevel = CurrentLevel + 1;
+	UTowerStatComponent* NewTowerStat = NewTower->TowerStatComponent;
+	if (!IsValid(NewTowerStat))
+	{
+		NewTower->Destroy();
+		return;
+	}
 
-    // 7. ActiveBuffs 이전 후 RecalculateStats()
-    NewTower->TowerStatComponent->ActiveBuffs = ActiveBuffs;
-    NewTower->TowerStatComponent->RecalculateStats();
+	NewTowerStat->TowerDataTable = TowerDataTable;
+	NewTowerStat->TowerRowName = TowerRowName;
+	NewTowerStat->CurrentLevel = CurrentLevel + 1;
+	NewTowerStat->InitFromDataTable();
+	NewTowerStat->ActiveBuffs = ActiveBuffs;
+	NewTowerStat->RecalculateStats();
 
-    // 8. OwnerSlot 이전 / 슬롯 갱신`
-    NewTower->OwnerSlot = OldTower->OwnerSlot;
-    OldTower->OwnerSlot->InstalledTower = NewTower;
+	NewTower->OwnerSlot = OldOwnerSlot;
+	OldOwnerSlot->InstalledTower = NewTower;
+	GameMode->Gold -= Row->GoldCost;
 
-    // 9. EpicManager 체크
-    ASynergyManager* SynergyManager = Cast<ASynergyManager>(
-        UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));
-    AEpicTowerManager* EpicManager = Cast<AEpicTowerManager>(
-        UGameplayStatics::GetActorOfClass(GetWorld(), AEpicTowerManager::StaticClass()));
-    if (EpicManager && SynergyManager)
-        EpicManager->CheckConditions(SynergyManager->FieldTowers);
+	ASynergyManager* SynergyManager = Cast<ASynergyManager>(
+		UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));
+	AEpicTowerManager* EpicManager = Cast<AEpicTowerManager>(
+		UGameplayStatics::GetActorOfClass(GetWorld(), AEpicTowerManager::StaticClass()));
+	if (EpicManager && SynergyManager)
+	{
+		EpicManager->CheckConditions(SynergyManager->FieldTowers);
+	}
 
-    // 10. TowerInfoWidget 닫기
-    if (OldTower->TowerInfoWidget && OldTower->TowerInfoWidget->IsInViewport())
-    {
-        OldTower->TowerInfoWidget->TowerStat = nullptr;
-        OldTower->TowerInfoWidget->CloseWidget();
+	if (OldTower->TowerInfoWidget && OldTower->TowerInfoWidget->IsInViewport())
+	{
+		OldTower->TowerInfoWidget->TowerStat = nullptr;
+		OldTower->TowerInfoWidget->CloseWidget();
+		NewTower->OnTowerClicked(nullptr, FKey());
+	}
 
-        // 새 타워 위젯 열기
-        NewTower->OnTowerClicked(nullptr, FKey());
-    }
-
-    // 11. Unregister 후 Destroy
-    if (SynergyManager)
-        SynergyManager->UnregisterTower(OldTower);
-    OldTower->Destroy();
+	if (SynergyManager)
+	{
+		SynergyManager->UnregisterTower(OldTower);
+	}
+	OldTower->Destroy();
 }
 
 float UTowerStatComponent::GetNextLevelGoldCost()
