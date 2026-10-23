@@ -21,6 +21,25 @@ UTowerStatComponent::UTowerStatComponent()
 	TowerIcon = nullptr;
 }
 
+void UTowerStatComponent::RecalculateStats()
+{
+	Super::RecalculateStats();
+
+	ABaseTower* Tower = Cast<ABaseTower>(GetOwner());
+	if (!IsValid(Tower) || !IsValid(Tower->TowerAttackRangeComponent)) return;
+
+	const float BaseRange = GetStat(UStatComponent::GetTag("Stat.AttackRange"));
+	ATowerDefenseGameMode* GameMode = GetWorld()
+		? Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()))
+		: nullptr;
+	const float AttackRangeBonus = GameMode
+		? GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.AttackRange"))
+		: 0.f;
+	const float FinalAttackRange = FMath::Max(0.f, BaseRange * (1.f + AttackRangeBonus));
+	Tower->TowerAttackRangeComponent->SetSphereRadius(FinalAttackRange);
+}
+
+
 void UTowerStatComponent::BeginPlay()
 {
     Super::BeginPlay();

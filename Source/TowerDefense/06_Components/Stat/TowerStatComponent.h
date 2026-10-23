@@ -60,6 +60,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxLevel = 3;
 
+	virtual void RecalculateStats() override;
+
 	UFUNCTION()
 	void InitFromDataTable();
 

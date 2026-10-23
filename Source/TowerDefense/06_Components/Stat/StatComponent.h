@@ -62,7 +62,7 @@ public:
 	void ModifyStat(FBuffEffect BuffEffect);
 
 	UFUNCTION(BlueprintCallable)
-	void RecalculateStats();
+	virtual void RecalculateStats();
 
 	UFUNCTION(BlueprintCallable)
 	void RemoveBuff(AActor* Source);
