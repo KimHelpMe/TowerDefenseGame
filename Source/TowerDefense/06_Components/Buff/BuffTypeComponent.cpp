@@ -42,6 +42,7 @@ TArray<AActor*> UBuffTypeComponent::GetTargetsInRange()
 	{
 		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
 
 		UKismetSystemLibrary::SphereOverlapActors(
 			GetWorld(),
