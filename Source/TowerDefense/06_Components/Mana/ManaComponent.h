@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -48,9 +47,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-
-
 public:
+	void RefreshRegenTimer();
 
 	// 타이머 호출, 마나회복 + 최대 도달 시 공격
 	UFUNCTION()

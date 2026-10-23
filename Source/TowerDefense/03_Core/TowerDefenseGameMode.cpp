@@ -1,6 +1,11 @@
 ﻿#include "TowerDefenseGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerSlot.h"
+#include "BaseTower.h"
+#include "AttackTower.h"
+#include "TowerStatComponent.h"
+#include "ManaComponent.h"
+#include "StatComponent.h"
 
 
 ATowerDefenseGameMode::ATowerDefenseGameMode()
@@ -184,7 +189,45 @@ bool ATowerDefenseGameMode::SpawnTowerSlot(FVector Location)
 // 인게임 업그레이드(업그레이드용)
 void ATowerDefenseGameMode::ApplyUpgrade(FBuffEffect Effect)
 {
+	if (!Effect.StatTag.IsValid() || !FMath::IsFinite(Effect.Value)) return;
+
 	InGameUpgrades.Add(Effect);
+
+	const FGameplayTag AttackRangeTag = UStatComponent::GetTag("Upgrade.AttackRange");
+	const FGameplayTag AttackSpeedTag = UStatComponent::GetTag("Upgrade.AttackSpeed");
+	const FGameplayTag ManaRegenTag = UStatComponent::GetTag("Upgrade.ManaRegen");
+	if (Effect.StatTag != AttackRangeTag && Effect.StatTag != AttackSpeedTag && Effect.StatTag != ManaRegenTag) return;
+	if (!GetWorld()) return;
+
+	TArray<AActor*> Towers;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseTower::StaticClass(), Towers);
+	for (AActor* Actor : Towers)
+	{
+		ABaseTower* Tower = Cast<ABaseTower>(Actor);
+		if (!IsValid(Tower)) continue;
+
+		if (Effect.StatTag == AttackRangeTag)
+		{
+			if (UTowerStatComponent* TowerStat = Tower->GetComponentByClass<UTowerStatComponent>())
+			{
+				TowerStat->RecalculateStats();
+			}
+		}
+		else if (Effect.StatTag == AttackSpeedTag)
+		{
+			if (AAttackTower* AttackTower = Cast<AAttackTower>(Tower))
+			{
+				AttackTower->RefreshAttackTimer();
+			}
+		}
+		else if (Effect.StatTag == ManaRegenTag)
+		{
+			if (UManaComponent* ManaComponent = Tower->GetComponentByClass<UManaComponent>())
+			{
+				ManaComponent->RefreshRegenTimer();
+			}
+		}
+	}
 }
 
 float ATowerDefenseGameMode::GetUpgradeBonus(FGameplayTag StatTag)

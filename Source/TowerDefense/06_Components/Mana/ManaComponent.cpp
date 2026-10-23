@@ -26,11 +26,23 @@ void UManaComponent::BeginPlay()
 	ManaCost = FMath::Clamp(ManaCost, 0.f, MaxMana);
 	if (!FMath::IsFinite(ManaRegenInterval) || ManaRegenInterval <= 0.f) ManaRegenInterval = 1.f;
 
-	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	const float ManaRegenBonus = GameMode ? GameMode->GetUpgradeBonus(
-		UStatComponent::GetTag("Upgrade.ManaRegen")) : 0.f;
+	RefreshRegenTimer();
+}
+
+void UManaComponent::RefreshRegenTimer()
+{
+	if (!GetWorld()) return;
+
+	const float ManaRegenBonus = [&]()
+	{
+		ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+		return GameMode ? GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.ManaRegen")) : 0.f;
+	}();
 	const float SafeManaRegenBonus = FMath::IsFinite(ManaRegenBonus) ? ManaRegenBonus : 0.f;
-	const float FinalManaRegenInterval = FMath::Max(0.01f, ManaRegenInterval * (1.f - SafeManaRegenBonus));
+	const float SafeBaseInterval = FMath::IsFinite(ManaRegenInterval) && ManaRegenInterval > 0.f
+		? ManaRegenInterval
+		: 1.f;
+	const float FinalManaRegenInterval = FMath::Max(0.01f, SafeBaseInterval * (1.f - SafeManaRegenBonus));
 
 	GetWorld()->GetTimerManager().SetTimer(
 		ManaRegenTimerHandle,

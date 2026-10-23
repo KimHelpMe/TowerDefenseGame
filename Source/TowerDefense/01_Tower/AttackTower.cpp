@@ -18,45 +18,48 @@ void AAttackTower::BeginPlay()
 {
 	Super::BeginPlay();
 
-
-
-	if (TowerAttackRangeComponent)
+	if (IsValid(TowerAttackRangeComponent))
 	{
-
 		TowerAttackRangeComponent->OnComponentBeginOverlap.AddDynamic(this, &AAttackTower::OnEnemyEnter);
-		
+		TowerAttackRangeComponent->OnComponentEndOverlap.AddDynamic(this, &AAttackTower::OnEnemyExit);
 	}
 
-
-	TowerAttackRangeComponent->OnComponentEndOverlap.AddDynamic(this, &AAttackTower::OnEnemyExit);
 	AttackTypeComponent = GetComponentByClass<UAttackTypeComponent>();
-	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
-	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 
-	if (TowerStat)
+	if (IsValid(TowerAttackRangeComponent))
 	{
-		float AttackRangeBonus = GameMode ? GameMode->GetUpgradeBonus(
-			UStatComponent::GetTag("Upgrade.AttackRange")) : 0.f;
-		float FinalAttackRange = TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackRange")) * (1.f + AttackRangeBonus);
-
-		TowerAttackRangeComponent->SetSphereRadius(FinalAttackRange);
-
-
-
-		float AttackSpeedBonus = GameMode ? GameMode->GetUpgradeBonus(
-			UStatComponent::GetTag("Upgrade.AttackSpeed")) : 0.f;
-
-		float FinalAttackSpeed = TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackSpeed")) * (1.f - AttackSpeedBonus);
-
-		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AAttackTower::Attack_Implementation, FinalAttackSpeed, true);
+		UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
+		ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+		const float BaseRange = TowerStat ? TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackRange")) : 500.f;
+		const float RangeBonus = GameMode ? GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.AttackRange")) : 0.f;
+		const float SafeRangeBonus = FMath::IsFinite(RangeBonus) ? RangeBonus : 0.f;
+		const float FinalRange = FMath::IsFinite(BaseRange) ? FMath::Max(0.f, BaseRange * (1.f + SafeRangeBonus)) : 500.f;
+		TowerAttackRangeComponent->SetSphereRadius(FinalRange);
 	}
-	else
-	{
-		TowerAttackRangeComponent->SetSphereRadius(500.f);
-		GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AAttackTower::Attack_Implementation, 1.f, true);
-	}
+
+	RefreshAttackTimer();
 }
 
+void AAttackTower::RefreshAttackTimer()
+{
+	if (!GetWorld()) return;
+
+	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
+	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	const float BaseAttackSpeed = TowerStat ? TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackSpeed")) : 1.f;
+	const float AttackSpeedBonus = GameMode ? GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.AttackSpeed")) : 0.f;
+	const float SafeAttackSpeedBonus = FMath::IsFinite(AttackSpeedBonus) ? AttackSpeedBonus : 0.f;
+	const float FinalAttackSpeed = FMath::IsFinite(BaseAttackSpeed)
+		? FMath::Max(0.01f, BaseAttackSpeed * (1.f - SafeAttackSpeedBonus))
+		: 1.f;
+
+	GetWorldTimerManager().SetTimer(
+		AttackTimerHandle,
+		this,
+		&AAttackTower::Attack_Implementation,
+		FinalAttackSpeed,
+		true);
+}
 void AAttackTower::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
