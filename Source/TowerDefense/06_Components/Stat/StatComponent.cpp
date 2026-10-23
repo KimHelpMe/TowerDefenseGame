@@ -115,18 +115,22 @@ void UStatComponent::RecalculateStats()
 // 데미지
 void UStatComponent::ApplyDamage(float Amount)
 {
-	
-	float CurrentHP = GetStat(GetTag("Stat.HP"));
+	if (!FMath::IsFinite(Amount) || Amount <= 0.f) return;
+
+	const FGameplayTag HPTag = GetTag("Stat.HP");
+	const float CurrentHP = GetStat(HPTag);
+	if (!FMath::IsFinite(CurrentHP) || CurrentHP <= 0.f) return;
+
+	const float NewHP = FMath::Max(0.f, CurrentHP - Amount);
 	UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: CurrentHP=%f, Amount=%f"), CurrentHP, Amount);
-	float NewHP = CurrentHP - Amount;
-	
-	if (NewHP <= 0)
+
+	if (NewHP <= 0.f)
 	{
-		// 사망
+		BaseStats.Add(HPTag, 0.f);
+		CurrentStats.Add(HPTag, 0.f);
 		OnDeath.Broadcast();
 		return;
 	}
 
-	// 살아 있으면 HP 저장.
-	SetBaseStat(GetTag("Stat.HP"), NewHP);
+	SetBaseStat(HPTag, NewHP);
 }
