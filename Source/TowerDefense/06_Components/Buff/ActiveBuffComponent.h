@@ -25,19 +25,24 @@ public:
 	UPROPERTY(EditAnywhere)
 	float Cooldown;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	bool bIsBuffActive;
 
 public:
 	
-	// ¹öÇÁ ¹ßµ¿.
-	UFUNCTION()
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ßµï¿½.
+	UFUNCTION(BlueprintCallable)
 	void ActivateBuff();
 
-	// ¹öÇÁ Á¾·á.
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½.
 	UFUNCTION()
 	void DeactivateBuff();
 
 	virtual void ApplyBuff() override;
+
+protected:
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 

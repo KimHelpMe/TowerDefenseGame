@@ -15,77 +15,101 @@ UActiveBuffComponent::UActiveBuffComponent()
 
 void UActiveBuffComponent::ActivateBuff()
 {
-	if (bIsBuffActive == true) return;
+	UWorld* World = GetWorld();
+	if (!World || !IsValid(GetOwner())) return;
 
 	bIsBuffActive = true;
 	ApplyBuff();
 
-	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-
-	float DurationBonus = GameMode ? GameMode->GetUpgradeBonus(
+	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(
+		UGameplayStatics::GetGameMode(World));
+	const float DurationBonus = GameMode ? GameMode->GetUpgradeBonus(
 		FGameplayTag::RequestGameplayTag("Upgrade.BuffDuration")) : 0.f;
+	const float FinalDuration = FMath::Max(0.1f, Duration + DurationBonus);
 
-	float FinalDuration = Duration + DurationBonus;
-
-	GetWorld()->GetTimerManager().SetTimer(DurationTimerHandle, this, &UActiveBuffComponent::DeactivateBuff, FinalDuration, false);
+	World->GetTimerManager().SetTimer(
+		DurationTimerHandle, this, &UActiveBuffComponent::DeactivateBuff, FinalDuration, false);
 }
 
 void UActiveBuffComponent::DeactivateBuff()
 {
+	if (!bIsBuffActive) return;
 
-	// 버프 제거.
+	const FName SourceKey = GetBuffSourceKey();
 	for (AActor* Target : PreviousTargets)
 	{
 		if (!IsValid(Target)) continue;
-		UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>();
-		if (StatComp)
+		if (UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>())
 		{
-			StatComp->RemoveBuff(GetOwner());
+			StatComp->RemoveBuffByKey(SourceKey);
 		}
 	}
 
 	PreviousTargets.Empty();
-
 	bIsBuffActive = false;
-	GetWorld()->GetTimerManager().SetTimer(CooldownTimerHandle, this, &UActiveBuffComponent::ActivateBuff, Cooldown, false);
+
+	if (Cooldown > 0.f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			CooldownTimerHandle, this, &UActiveBuffComponent::ActivateBuff, Cooldown, false);
+	}
+	else
+	{
+		ActivateBuff();
+	}
 }
 
 void UActiveBuffComponent::ApplyBuff()
 {
-	// 1. 이전 대상 버프 제거.
+	const FName SourceKey = GetBuffSourceKey();
 	for (AActor* Target : PreviousTargets)
 	{
 		if (!IsValid(Target)) continue;
-		UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>();
-
-		if (StatComp)
+		if (UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>())
 		{
-			StatComp->RemoveBuff(GetOwner());
+			StatComp->RemoveBuffByKey(SourceKey);
 		}
 	}
 
-	// 2. 현재 범위 내 대상 버프 적용.
 	TArray<AActor*> CurrentTargets = GetTargetsInRange();
 	for (AActor* Target : CurrentTargets)
 	{
+		if (!IsValid(Target)) continue;
 		UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>();
-		if (StatComp)
-		{
-			for (FBuffEffect& Effect : BuffEffects)
-			{
-				FBuffEffect NewBuff;
-				NewBuff.StatTag = Effect.StatTag;
-				NewBuff.Value = Effect.Value;
-				NewBuff.ValueType = Effect.ValueType;
-				NewBuff.Source = GetOwner();
-				StatComp->ModifyStat(NewBuff);
-			}
-		}
+		if (!StatComp) continue;
 
+		for (const FBuffEffect& Effect : BuffEffects)
+		{
+			FBuffEffect NewBuff;
+			NewBuff.StatTag = Effect.StatTag;
+			NewBuff.Value = Effect.Value;
+			NewBuff.ValueType = Effect.ValueType;
+			NewBuff.Source = GetOwner();
+			NewBuff.SourceKey = SourceKey;
+			StatComp->ModifyStat(NewBuff);
+		}
 	}
 	PreviousTargets = CurrentTargets;
-
 }
 
+void UActiveBuffComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(CooldownTimerHandle);
+		World->GetTimerManager().ClearTimer(DurationTimerHandle);
+	}
 
+	const FName SourceKey = GetBuffSourceKey();
+	for (AActor* Target : PreviousTargets)
+	{
+		if (!IsValid(Target)) continue;
+		if (UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>())
+		{
+			StatComp->RemoveBuffByKey(SourceKey);
+		}
+	}
+	PreviousTargets.Empty();
 
+	Super::EndPlay(EndPlayReason);
+}

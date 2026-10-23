@@ -9,6 +9,11 @@ UBuffTypeComponent::UBuffTypeComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
+FName UBuffTypeComponent::GetBuffSourceKey() const
+{
+	return FName(*FString::Printf(TEXT("BuffComponent_%u"), GetUniqueID()));
+}
+
 void UBuffTypeComponent::BeginPlay()
 {
 	Super::BeginPlay();

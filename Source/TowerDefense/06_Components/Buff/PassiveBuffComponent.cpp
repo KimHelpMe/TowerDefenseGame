@@ -12,36 +12,33 @@ UPassiveBuffComponent::UPassiveBuffComponent()
 
 void UPassiveBuffComponent::ApplyBuff()
 {
-	// 1. 이전 대상 버프 제거.
+	const FName SourceKey = GetBuffSourceKey();
 	for (AActor* Target : PreviousTargets)
 	{
 		if (!IsValid(Target)) continue;
-		UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>();
-
-		if (StatComp)
+		if (UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>())
 		{
-		  StatComp->RemoveBuff(GetOwner());
+			StatComp->RemoveBuffByKey(SourceKey);
 		}
 	}
 
-	// 2. 현재 범위 내 대상 버프 적용.
 	TArray<AActor*> CurrentTargets = GetTargetsInRange();
 	for (AActor* Target : CurrentTargets)
 	{
+		if (!IsValid(Target)) continue;
 		UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>();
-		if (StatComp)
-		{
-			for (FBuffEffect& Effect : BuffEffects)
-			{
-				FBuffEffect NewBuff;
-				NewBuff.StatTag = Effect.StatTag;
-				NewBuff.Value = Effect.Value;
-				NewBuff.ValueType = Effect.ValueType;
-				NewBuff.Source = GetOwner();
-				StatComp->ModifyStat(NewBuff);
-			}
-		}
+		if (!StatComp) continue;
 
+		for (const FBuffEffect& Effect : BuffEffects)
+		{
+			FBuffEffect NewBuff;
+			NewBuff.StatTag = Effect.StatTag;
+			NewBuff.Value = Effect.Value;
+			NewBuff.ValueType = Effect.ValueType;
+			NewBuff.Source = GetOwner();
+			NewBuff.SourceKey = SourceKey;
+			StatComp->ModifyStat(NewBuff);
+		}
 	}
 	PreviousTargets = CurrentTargets;
 }
@@ -49,5 +46,27 @@ void UPassiveBuffComponent::ApplyBuff()
 void UPassiveBuffComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	GetWorld()->GetTimerManager().SetTimer(BuffTimerHandle, this, &UPassiveBuffComponent::ApplyBuff, BuffInterval, true);
+	const float Interval = FMath::Max(0.1f, BuffInterval);
+	GetWorld()->GetTimerManager().SetTimer(BuffTimerHandle, this, &UPassiveBuffComponent::ApplyBuff, Interval, true);
+}
+
+void UPassiveBuffComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(BuffTimerHandle);
+	}
+
+	const FName SourceKey = GetBuffSourceKey();
+	for (AActor* Target : PreviousTargets)
+	{
+		if (!IsValid(Target)) continue;
+		if (UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>())
+		{
+			StatComp->RemoveBuffByKey(SourceKey);
+		}
+	}
+	PreviousTargets.Empty();
+
+	Super::EndPlay(EndPlayReason);
 }

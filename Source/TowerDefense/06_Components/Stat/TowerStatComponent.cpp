@@ -209,6 +209,7 @@ void UTowerStatComponent::ApplyBuffFromData(const FBuffConfig& BuffSetting)
             ActiveBuffComp->Duration = BuffSetting.BuffDuration;
             ActiveBuffComp->Cooldown = BuffSetting.BuffCooldown;
             ActiveBuffComp->BuffRadius = BuffSetting.BuffRadius;
+            ActiveBuffComp->ActivateBuff();
         }
     }
     break;

@@ -33,6 +33,7 @@ public:
 
 protected:
 
+	FName GetBuffSourceKey() const;
 	virtual void BeginPlay() override;
 
 public:	
