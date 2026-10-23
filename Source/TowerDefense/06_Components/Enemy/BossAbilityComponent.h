@@ -15,7 +15,7 @@ class TOWERDEFENSE_API UBossAbilityComponent : public UEnemyAbilityComponent
 public:
 
 	UPROPERTY(EditAnywhere)
-	int32 CurrentPhase;
+	int32 CurrentPhase = 1;
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AEnemy> MinionClass;

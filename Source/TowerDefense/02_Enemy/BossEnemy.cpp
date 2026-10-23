@@ -18,6 +18,10 @@ void ABossEnemy::BeginPlay()
 	Super::BeginPlay();
 
 	BossAbilityComponent = GetComponentByClass<UBossAbilityComponent>();
+	if (IsValid(BossAbilityComponent) && BossAbilityComponent->CurrentPhase < 1)
+	{
+		BossAbilityComponent->CurrentPhase = 1;
+	}
 	
 	if (BossNotifyWidgetClass)
 	{
@@ -68,22 +72,22 @@ void ABossEnemy::BeginPlay()
 void ABossEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 {
 	Super::ReceiveDamage(AmountDamage, AttackerStat);
-	if (!IsValid(this)) return;
+	if (!IsValid(this) || bIsDead) return;
 
 	UEnemyStatComponent* BossStat = GetComponentByClass<UEnemyStatComponent>();
-	if (!BossStat) return;
-	if (!BossAbilityComponent) return;
+	if (!IsValid(BossStat) || !IsValid(BossAbilityComponent)) return;
 
-	float HP = BossStat->GetStat(UStatComponent::GetTag("Stat.HP"));
-	float MaxHP = BossStat->GetStat(UStatComponent::GetTag("Stat.MaxHP"));
-	float HPPercent = (HP / MaxHP) * 100.f;
+	const float MaxHP = BossStat->GetStat(UStatComponent::GetTag("Stat.MaxHP"));
+	if (!FMath::IsFinite(MaxHP) || MaxHP <= KINDA_SMALL_NUMBER) return;
+
+	const float HP = BossStat->GetStat(UStatComponent::GetTag("Stat.HP"));
+	const float HPPercent = FMath::Clamp((HP / MaxHP) * 100.f, 0.f, 100.f);
 
 	if (HPPercent <= 50.f && BossAbilityComponent->CurrentPhase == 1)
-		{
-			BossAbilityComponent->OnPhaseChanged(2);
-		}
-
-	if (HPPercent <= 10.f && BossAbilityComponent->CurrentPhase == 2)
+	{
+		BossAbilityComponent->OnPhaseChanged(2);
+	}
+	else if (HPPercent <= 10.f && BossAbilityComponent->CurrentPhase == 2)
 	{
 		BossAbilityComponent->OnPhaseChanged(3);
 	}

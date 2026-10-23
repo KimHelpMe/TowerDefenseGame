@@ -1,15 +1,17 @@
 ﻿
 #include "BossAbilityComponent.h"
 #include "Enemy.h"
+#include "EnemySplinePath.h"
 #include "FBuffEffect.h"
 #include "StatComponent.h"
 #include "EnemyStatComponent.h"
 
 void UBossAbilityComponent::OnPhaseChanged(int32 NewPhase)
 {
+	if (NewPhase <= CurrentPhase || NewPhase > 3) return;
+
 	CurrentPhase = NewPhase;
 	SpawnMinions();
-
 	ApplyPhaseBuffs(NewPhase);
 	UE_LOG(LogTemp, Warning, TEXT("Boss Phase Changed to %d"), NewPhase);
 }
@@ -17,30 +19,27 @@ void UBossAbilityComponent::OnPhaseChanged(int32 NewPhase)
 void UBossAbilityComponent::SpawnMinions()
 {
 	AEnemy* OwnerBoss = Cast<AEnemy>(GetOwner());
-	if (!OwnerBoss) return;
+	if (!IsValid(OwnerBoss) || !GetWorld() || !MinionClass || MinionSpawnCount <= 0) return;
+	if (!IsValid(OwnerBoss->splinePath) || !IsValid(OwnerBoss->splinePath->splineComponent)) return;
 
 	for (int32 i = 0; i < MinionSpawnCount; i++)
 	{
-		// 스폰 위치에 랜덤 오프셋 추가
 		FVector SpawnLocation = OwnerBoss->GetActorLocation();
 		SpawnLocation.X += FMath::RandRange(-50.f, 50.f);
 		SpawnLocation.Y += FMath::RandRange(-50.f, 50.f);
 
-		// Owner 위치에 스폰
 		AEnemy* SpawnedEnemy = GetWorld()->SpawnActor<AEnemy>(
 			MinionClass,
 			SpawnLocation,
 			FRotator::ZeroRotator
 		);
 
-		// splinePath와 CurrentSplinePoint 전달
-		if (SpawnedEnemy)
+		if (IsValid(SpawnedEnemy))
 		{
 			SpawnedEnemy->splinePath = OwnerBoss->splinePath;
 			SpawnedEnemy->CurrentSplinePoint = OwnerBoss->CurrentSplinePoint;
 		}
 	}
-
 }
 
 void UBossAbilityComponent::ApplyPhaseBuffs(int32 Phase)
@@ -81,5 +80,3 @@ void UBossAbilityComponent::ApplyPhaseBuffs(int32 Phase)
 		BossStat->ModifyStat(DefenseEffect);
 	}
 }
-
-
