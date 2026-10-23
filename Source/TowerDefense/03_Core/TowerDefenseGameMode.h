@@ -18,6 +18,7 @@ class ACommandManager;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTokenChanged, float, NewToken);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnExpChanged, int32, NewLevel, float, NewExp, float, NewMaxExp);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameOver);
 
 UCLASS()
 class TOWERDEFENSE_API ATowerDefenseGameMode : public AGameModeBase
@@ -46,6 +47,15 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnTokenChanged OnTokenChanged;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game State")
+	bool bIsGameOver;
+
+	UPROPERTY(BlueprintAssignable, Category = "Game State")
+	FOnGameOver OnGameOver;
+
+	UFUNCTION(BlueprintCallable, Category = "Game State")
+	void TriggerGameOver();
 
 	// Level.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

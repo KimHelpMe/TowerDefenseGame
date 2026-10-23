@@ -15,6 +15,7 @@ ATowerDefenseGameMode::ATowerDefenseGameMode()
 	Exp = 0;
 	MaxExp = 0.f;
 	PlayerLevel = 1;
+	bIsGameOver = false;
 
 
 	// 타워 슬롯(Tower Slot)
@@ -69,6 +70,18 @@ void ATowerDefenseGameMode::AddExp(float Amount)
 }
 
 
+
+void ATowerDefenseGameMode::TriggerGameOver()
+{
+	if (bIsGameOver) return;
+
+	bIsGameOver = true;
+	if (RoundManager)
+	{
+		RoundManager->StopRounds();
+	}
+	OnGameOver.Broadcast();
+}
 
 // 라운드 스킵(Skip) 관련
 bool ATowerDefenseGameMode::CanSkip()

@@ -60,6 +60,18 @@ void ARoundManager::UpdateRoundTick()
 	}
 }
 
+void ARoundManager::StopRounds()
+{
+	GetWorldTimerManager().ClearTimer(RoundTimerHandle);
+	GetWorldTimerManager().ClearTimer(EntryTimerHandle);
+	if (IsValid(SpawnSystem))
+	{
+		SpawnSystem->StopSpawn();
+	}
+	PendingEntries.Empty();
+	CurrentEntryIndex = 0;
+}
+
 void ARoundManager::StartRound(int32 RoundNumber)
 {
 	if (!RoundDataTable) return;

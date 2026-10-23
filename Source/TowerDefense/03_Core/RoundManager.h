@@ -38,6 +38,9 @@ public:
 	UFUNCTION()
 	void StartRound(int32 RoundNumber);
 
+	UFUNCTION(BlueprintCallable)
+	void StopRounds();
+
 	// Finish Round -> Get Reward.
 
 	void SpawnEnemiesForRound(FRoundDataRow* RoundData);

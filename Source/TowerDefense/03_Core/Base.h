@@ -31,6 +31,7 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+	bool bIsDefeated = false;
 
 public:	
 
