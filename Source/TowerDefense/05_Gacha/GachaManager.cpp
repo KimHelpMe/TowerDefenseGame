@@ -288,6 +288,7 @@ void AGachaManager::SelectItem(int32 Index)
 		{
 			UpgradePool.Remove(CurrentRollResult[Index]);
 		}
+		SpawnedActor->Destroy();
 
 		ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(
 			UGameplayStatics::GetGameMode(GetWorld()));
