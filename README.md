@@ -1,6 +1,6 @@
 # TowerDefense
 
-Unreal Engine 5.3과 C++로 제작한 1인 로그라이크 타워 디펜스 프로젝트입니다.
+Unreal Engine 5.3과 C++로 개발을 시작해, UE 5.8에서 C++ Editor 타깃 빌드를 확인한 1인 로그라이크 타워 디펜스 프로젝트입니다.
 타워를 뽑고 지정된 슬롯에 배치하며, 속성과 시너지 조합을 구성하는 프로토타입입니다.
 
 | 항목 | 내용 |
@@ -8,7 +8,7 @@ Unreal Engine 5.3과 C++로 제작한 1인 로그라이크 타워 디펜스 프�
 | 개발자 | 엄태호 / KimHelpMe |
 | 개발 기간 | 2026.05.18 ~ 2026.06.14 |
 | 개발 인원 | 1명 |
-| 엔진 / 언어 | Unreal Engine 5.3 / C++ |
+| 엔진 / 언어 | Unreal Engine 5.3 (개발) / 5.8 (빌드 확인) / C++ |
 | 대상 플랫폼 | PC |
 
 이 저장소는 기존 로컬 프로젝트의 현재 보관 상태를 가져온 것입니다.
@@ -48,14 +48,14 @@ Git LFS를 쓰더라도 외부 에셋을 공개할 권한이 새로 생기는 �
 
 ## 실행 준비
 
-1. Unreal Engine 5.3과 해당 엔진의 C++ 개발에 필요한 Visual Studio 도구를 준비합니다.
+1. Unreal Engine 5.8과 C++ 개발에 필요한 Visual Studio 도구를 준비합니다.
 2. 실행 권한이 있는 전체 로컬 프로젝트에서 `Content/`를 복원합니다. 공개 소스만 받은 상태로는 이 단계가 충족되지 않습니다.
 3. `TowerDefense.uproject`에서 Visual Studio 프로젝트 파일을 생성합니다.
 4. 생성된 솔루션에서 `Development Editor` / `Win64` 대상으로 빌드합니다.
 5. `TowerDefense.uproject`를 Unreal Editor에서 엽니다.
 
 설정 파일의 기본 맵은 `/Game/00_Level/EmptyLevel`입니다.
-이번 저장소 가져오기 작업에서는 프로젝트를 새로 빌드하거나 게임을 실행하지 않았습니다.
+UE 5.8의 `Development Editor` / `Win64` C++ 타깃 빌드를 확인했습니다. Content 복원 후 에디터 실행과 플레이는 아직 확인하지 않았습니다.
 
 ## 폴더 구조
 
