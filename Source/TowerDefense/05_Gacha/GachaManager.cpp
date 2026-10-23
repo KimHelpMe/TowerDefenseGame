@@ -45,27 +45,37 @@ void AGachaManager::Tick(float DeltaTime)
 
 void AGachaManager::OpenGacha(ATowerSlot* Slot)
 {
-	bIsGachaOpen = true;
-
-	if (!GachaWidgetClass) return;
+	if (!IsValid(Slot) || !GachaWidgetClass) return;
 
 	GachaWidget = CreateWidget<UGachaWidget>(GetWorld(), GachaWidgetClass);
-	GachaWidget->AddToViewport();
+	if (!GachaWidget) return;
 
 	CurrentSlot = Slot;
-	
-	// 저장된 결과가 있으면 Roll 안함.
+	bIsGachaOpen = true;
+	GachaWidget->AddToViewport();
+
 	if (Slot->SavedRollResult.Num() > 0)
 	{
 		CurrentRollResult = Slot->SavedRollResult;
-		GachaWidget->UpdateGachaUI(BuildCardInfos(CurrentRollResult));
+		const TArray<FGachaCardInfo> SavedCardInfos = BuildCardInfos(CurrentRollResult);
+		if (SavedCardInfos.Num() == 3)
+		{
+			GachaWidget->UpdateGachaUI(SavedCardInfos);
+		}
+		else
+		{
+			Roll();
+		}
 	}
 	else
 	{
 		Roll();
 	}
 
-	GachaWidget->UpdateReloadUI(CurrentSlot->ReloadCount, CurrentSlot->bCanAbandon);
+	if (IsValid(CurrentSlot))
+	{
+		GachaWidget->UpdateReloadUI(CurrentSlot->ReloadCount, CurrentSlot->bCanAbandon);
+	}
 }
 
 void AGachaManager::CloseGacha()
@@ -83,165 +93,215 @@ void AGachaManager::CloseGacha()
 
 void AGachaManager::Roll()
 {
-	CurrentRollResult.Empty();
+	if (!IsValid(CurrentSlot)) return;
 
-	// PendingFusionTowers가 있으면 Index 0에 강제 배치.
-	if (PendingFusionTowers.Num() > 0)
+	CurrentRollResult.Empty();
+	const auto IsSupportedItem = [](const TSubclassOf<AActor>& Item)
+	{
+		if (!Item) return false;
+		const AActor* ItemCDO = Item->GetDefaultObject<AActor>();
+		return ItemCDO && (ItemCDO->IsA(ABaseTower::StaticClass())
+			|| ItemCDO->IsA(AUpgradeItem::StaticClass()));
+	};
+	if (PendingFusionTowers.Num() > 0 && IsSupportedItem(PendingFusionTowers[0]))
 	{
 		CurrentRollResult.Add(PendingFusionTowers[0]);
 	}
 
+	TArray<TArray<TSubclassOf<AActor>>*> Pools = {
+		&CommonPool, &RarePool, &UniquePool, &EpicPool, &UpgradePool
+	};
+	const TArray<float> PoolRates = {
+		CommonPoolRate, RarePoolRate, UniquePoolRate, EpicPoolRate, UpgradePoolRate
+	};
 
-	// 나머지 2장 뽑기 (i는 이미 있는 개수부터 시작)
-	for (int32 i = CurrentRollResult.Num(); i < 3; i++)
+	TArray<TSubclassOf<AActor>> AllValidItems;
+	for (TArray<TSubclassOf<AActor>>* Pool : Pools)
 	{
-		TArray<TSubclassOf<AActor>>* SelectedPool;
-		float RandValue = FMath::RandRange(0.f, TotalPoolRate);
-
-		if (RandValue < CommonPoolRate)
-			SelectedPool = &CommonPool;
-		else if (RandValue < CommonPoolRate + RarePoolRate)
-				SelectedPool = &RarePool;
-		else if (RandValue < CommonPoolRate + RarePoolRate + UniquePoolRate)
-				SelectedPool = &UniquePool;
-		else if (RandValue < CommonPoolRate + RarePoolRate + UniquePoolRate + EpicPoolRate)
-				SelectedPool = &EpicPool;
-		else
-				SelectedPool = &UpgradePool;
-
-
-		// 선택된 풀이 비어있으면 다른 풀로 대체
-		if (SelectedPool->Num() == 0) SelectedPool = &CommonPool;
-		if (SelectedPool->Num() == 0) SelectedPool = &RarePool;
-		if (SelectedPool->Num() == 0) SelectedPool = &UniquePool;
-		if (SelectedPool->Num() == 0) SelectedPool = &UpgradePool;
-
-		// 모든 풀이 비어있으면 건너뜀
-		if (SelectedPool->Num() == 0) continue;
-
-		// 선택된 풀에서 이미 뽑힌 것 제외.
-		TArray<TSubclassOf<AActor>> AvailablePool = SelectedPool->FilterByPredicate(
-			[this](const TSubclassOf<AActor>& Item)
-			{
-				return !CurrentRollResult.Contains(Item);
-			});
-
-		// 없으면 모든 풀에서 합치기.
-		if (AvailablePool.Num() == 0)
+		if (!Pool) continue;
+		for (const TSubclassOf<AActor>& Item : *Pool)
 		{
-			for (auto* Pool : TArray<TArray<TSubclassOf<AActor>>*>
-				{ &CommonPool, &RarePool, &UniquePool, &EpicPool, &UpgradePool })
+			if (IsSupportedItem(Item)) AllValidItems.AddUnique(Item);
+		}
+	}
+	if (!CurrentRollResult.IsEmpty())
+	{
+		AllValidItems.AddUnique(CurrentRollResult[0]);
+	}
+
+	TArray<float> EffectiveRates;
+	for (float Rate : PoolRates)
+	{
+		EffectiveRates.Add(FMath::Max(0.f, Rate));
+	}
+
+	while (CurrentRollResult.Num() < 3 && !AllValidItems.IsEmpty())
+	{
+		TArray<int32> AvailablePoolIndices;
+		for (int32 PoolIndex = 0; PoolIndex < Pools.Num(); ++PoolIndex)
+		{
+			if (!Pools[PoolIndex]) continue;
+			for (const TSubclassOf<AActor>& Item : *Pools[PoolIndex])
 			{
-				for (auto& Item : *Pool)
+				if (IsSupportedItem(Item) && !CurrentRollResult.Contains(Item))
 				{
-					if (!CurrentRollResult.Contains(Item))
+					AvailablePoolIndices.AddUnique(PoolIndex);
+					break;
+				}
+			}
+		}
+
+		TArray<TSubclassOf<AActor>> AvailableItems;
+		if (!AvailablePoolIndices.IsEmpty())
+		{
+			float AvailableRate = 0.f;
+			for (int32 PoolIndex : AvailablePoolIndices)
+			{
+				AvailableRate += EffectiveRates[PoolIndex];
+			}
+			const bool bUseEqualWeights = AvailableRate <= KINDA_SMALL_NUMBER;
+			if (bUseEqualWeights)
+			{
+				AvailableRate = static_cast<float>(AvailablePoolIndices.Num());
+			}
+
+			float RollValue = FMath::FRandRange(0.f, AvailableRate);
+			int32 SelectedPoolIndex = AvailablePoolIndices.Last();
+			for (int32 PoolIndex : AvailablePoolIndices)
+			{
+				const float Weight = bUseEqualWeights ? 1.f : EffectiveRates[PoolIndex];
+				RollValue -= Weight;
+				if (RollValue <= 0.f)
+				{
+					SelectedPoolIndex = PoolIndex;
+					break;
+				}
+			}
+
+			for (const TSubclassOf<AActor>& Item : *Pools[SelectedPoolIndex])
+			{
+				if (IsSupportedItem(Item) && !CurrentRollResult.Contains(Item))
+				{
+					AvailableItems.AddUnique(Item);
+				}
+			}
+		}
+
+		if (AvailableItems.IsEmpty())
+		{
+			for (TArray<TSubclassOf<AActor>>* Pool : Pools)
+			{
+				if (!Pool) continue;
+				for (const TSubclassOf<AActor>& Item : *Pool)
+				{
+					if (IsSupportedItem(Item) && !CurrentRollResult.Contains(Item))
 					{
-						AvailablePool.Add(Item);
+						AvailableItems.AddUnique(Item);
 					}
 				}
 			}
 		}
 
-			// 그래도 없으면 건너뜀.
-			if (AvailablePool.Num() == 0) continue;
+		// 풀이 세 종류 미만이면 유효한 카드를 반복해 빈 칸을 만들지 않는다.
+		if (AvailableItems.IsEmpty())
+		{
+			AvailableItems = AllValidItems;
+		}
+		if (AvailableItems.IsEmpty()) break;
 
-			int32 RandIndex = FMath::RandRange(0, AvailablePool.Num() - 1);
-			CurrentRollResult.Add(AvailablePool[RandIndex]);
-	
+		CurrentRollResult.Add(AvailableItems[FMath::RandRange(0, AvailableItems.Num() - 1)]);
 	}
 
-	for (auto& Item : CurrentRollResult)
+	for (const TSubclassOf<AActor>& Item : CurrentRollResult)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RollResult: %s"),
-			Item ? *Item->GetName() : TEXT("NULL"));
+		UE_LOG(LogTemp, Warning, TEXT("RollResult: %s"), Item ? *Item->GetName() : TEXT("NULL"));
 	}
 
 	if (GachaWidget)
 	{
 		GachaWidget->UpdateGachaUI(BuildCardInfos(CurrentRollResult));
 	}
-
 	CurrentSlot->SavedRollResult = CurrentRollResult;
 }
 
-
 void AGachaManager::SelectItem(int32 Index)
 {
-	if (!CurrentRollResult[Index]) return;
-	if (!CurrentSlot) return;
+	if (!CurrentRollResult.IsValidIndex(Index) || !CurrentRollResult[Index]) return;
+	if (!IsValid(CurrentSlot)) return;
 
-	FVector CurrentSlotLocation = CurrentSlot->GetActorLocation();
-	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(CurrentRollResult[Index], CurrentSlotLocation, FRotator::ZeroRotator);
+	const FVector CurrentSlotLocation = CurrentSlot->GetActorLocation();
+	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
+		CurrentRollResult[Index], CurrentSlotLocation, FRotator::ZeroRotator);
+	if (!SpawnedActor) return;
 
-	if (SpawnedActor)
+	if (IGachable* GachableItem = Cast<IGachable>(SpawnedActor))
 	{
-		IGachable* GachableItem = Cast<IGachable>(SpawnedActor);
-		if (GachableItem)
-		{
-			GachableItem->OnSelected(CurrentSlot);
-		}
-
-		// 타워 -> 슬롯 점유함.
-		// 업그레이드 -> 슬롯 반환함.
-		ABaseTower* Tower = Cast<ABaseTower>(SpawnedActor);
-		if (Tower)
-		{
-			Tower->OwnerSlot = CurrentSlot;
-			CurrentSlot->InstalledTower = Tower;
-			CurrentSlot->bIsOccupied = true;
-			CurrentSlot->TowerSlotMesh->SetVisibility(false);
-
-			// 풀에서 제거
-			CommonPool.Remove(CurrentRollResult[Index]);
-			RarePool.Remove(CurrentRollResult[Index]);
-			UniquePool.Remove(CurrentRollResult[Index]);
-
-			// 합성형 에픽 타워인지 확인
-			if (PendingFusionTowers.Contains(CurrentRollResult[Index]))
-			{
-				AEpicTowerManager* EpicManager = Cast<AEpicTowerManager>(
-					UGameplayStatics::GetActorOfClass(GetWorld(), AEpicTowerManager::StaticClass()));
-				ASynergyManager* SynergyManager = Cast<ASynergyManager>(
-					UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));
-				if (EpicManager)
-				{
-					EpicManager->FuseEpicTower(
-						CurrentRollResult[Index],
-						SynergyManager ? SynergyManager->FieldTowers : TArray<ABaseTower*>(),
-						this,
-						SynergyManager);
-				}
-			}
-		}
-		else
-		{  
-			// 업그레이드 선택 횟수 증가
-			int32& Count = UpgradeItemCounts.FindOrAdd(CurrentRollResult[Index]);
-			Count++;
-
-			// MaxCount 도달 시 UpgradePool에서 제거
-			AUpgradeItem* UpgradeItem = Cast<AUpgradeItem>(SpawnedActor);
-			if (UpgradeItem && Count >= UpgradeItem->MaxCount)
-			{
-				UpgradePool.Remove(CurrentRollResult[Index]);
-			}
-			
-			// 업그레이드 -> 슬롯 반환.
-			ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(
-				UGameplayStatics::GetGameMode(GetWorld()));
-			if (GameMode) GameMode->CurrentTowerSlot--;
-
-			// 업그레이드 -> 슬롯 반환.
-			if (CurrentSlot->OwnerTile)
-			{
-				CurrentSlot->OwnerTile->bIsOccupied = false;
-				CurrentSlot->OwnerTile->SetHighlight(false);
-			}
-			CurrentSlot->Destroy();
-			CurrentSlot = nullptr;
-		}
-
+		GachableItem->OnSelected(CurrentSlot);
 	}
+	if (!IsValid(CurrentSlot))
+	{
+		CloseGacha();
+		return;
+	}
+
+	ABaseTower* Tower = Cast<ABaseTower>(SpawnedActor);
+	if (Tower)
+	{
+		Tower->OwnerSlot = CurrentSlot;
+		CurrentSlot->InstalledTower = Tower;
+		CurrentSlot->bIsOccupied = true;
+		if (CurrentSlot->TowerSlotMesh) CurrentSlot->TowerSlotMesh->SetVisibility(false);
+
+		CommonPool.Remove(CurrentRollResult[Index]);
+		RarePool.Remove(CurrentRollResult[Index]);
+		UniquePool.Remove(CurrentRollResult[Index]);
+		EpicPool.Remove(CurrentRollResult[Index]);
+
+		if (PendingFusionTowers.Contains(CurrentRollResult[Index]))
+		{
+			AEpicTowerManager* EpicManager = Cast<AEpicTowerManager>(
+				UGameplayStatics::GetActorOfClass(GetWorld(), AEpicTowerManager::StaticClass()));
+			ASynergyManager* SynergyManager = Cast<ASynergyManager>(
+				UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));
+			if (EpicManager)
+			{
+				EpicManager->FuseEpicTower(
+					CurrentRollResult[Index],
+					SynergyManager ? SynergyManager->FieldTowers : TArray<ABaseTower*>(),
+					this,
+					SynergyManager);
+			}
+		}
+	}
+	else
+	{
+		AUpgradeItem* UpgradeItem = Cast<AUpgradeItem>(SpawnedActor);
+		if (!UpgradeItem)
+		{
+			SpawnedActor->Destroy();
+			return;
+		}
+
+		int32& Count = UpgradeItemCounts.FindOrAdd(CurrentRollResult[Index]);
+		Count++;
+		if (Count >= UpgradeItem->MaxCount)
+		{
+			UpgradePool.Remove(CurrentRollResult[Index]);
+		}
+
+		ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(
+			UGameplayStatics::GetGameMode(GetWorld()));
+		if (GameMode) GameMode->CurrentTowerSlot--;
+
+		if (CurrentSlot->OwnerTile)
+		{
+			CurrentSlot->OwnerTile->bIsOccupied = false;
+			CurrentSlot->OwnerTile->SetHighlight(false);
+		}
+		CurrentSlot->Destroy();
+		CurrentSlot = nullptr;
+	}
+
 	CloseGacha();
 }
 
@@ -291,50 +351,49 @@ void AGachaManager::AbandonGacha()
 TArray<FGachaCardInfo> AGachaManager::BuildCardInfos(const TArray<TSubclassOf<AActor>>& Items)
 {
 	TArray<FGachaCardInfo> CardInfos;
-	for (auto& ItemClass : Items)
+	for (const TSubclassOf<AActor>& ItemClass : Items)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BuildCardInfos - ItemClass: %s"),
-			ItemClass ? *ItemClass->GetName() : TEXT("NULL"));
+		if (!ItemClass) continue;
+
+		AActor* ItemCDO = ItemClass->GetDefaultObject<AActor>();
+		if (!ItemCDO) continue;
 
 		FGachaCardInfo CardInfo;
-		ABaseTower* TowerCDO = Cast<ABaseTower>(ItemClass->GetDefaultObject());
-		if (TowerCDO)
+		CardInfo.Name = ItemClass->GetName();
+		CardInfo.Grade = TEXT("Unknown");
+
+		if (ABaseTower* TowerCDO = Cast<ABaseTower>(ItemCDO))
 		{
-			UTowerStatComponent* TowerStat = TowerCDO->TowerStatComponent;
-			UE_LOG(LogTemp, Warning, TEXT("TowerStat Direct: %s"), TowerStat ? TEXT("Valid") : TEXT("Null"));
-			if (TowerStat && TowerStat->TowerDataTable)
+			if (UTowerStatComponent* TowerStat = TowerCDO->TowerStatComponent)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("TowerRowName: %s"), *TowerStat->TowerRowName.ToString());
-				FString RowKey = TowerStat->TowerRowName.ToString() + "_Lv1";
-				FTowerDataRow* Row = TowerStat->TowerDataTable->FindRow<FTowerDataRow>(
-					FName(*RowKey), TEXT(""));
-				if (Row)
+				if (TowerStat->TowerDataTable)
 				{
-					CardInfo.Name = Row->TowerName;
-					CardInfo.Grade = Row->Grade;
-					CardInfo.Icon = Row->Icon;
-					CardInfo.SynergyTags = Row->SynergyTags;
-					CardInfo.bIsUpgrade = false;
+					const FString RowKey = TowerStat->TowerRowName.ToString() + TEXT("_Lv1");
+					if (FTowerDataRow* Row = TowerStat->TowerDataTable->FindRow<FTowerDataRow>(
+						FName(*RowKey), TEXT("")))
+					{
+						if (!Row->TowerName.IsEmpty()) CardInfo.Name = Row->TowerName;
+						if (!Row->Grade.IsEmpty()) CardInfo.Grade = Row->Grade;
+						CardInfo.Icon = Row->Icon;
+						CardInfo.SynergyTags = Row->SynergyTags;
+					}
 				}
 			}
+			CardInfo.bIsUpgrade = false;
+		}
+		else if (AUpgradeItem* UpgradeCDO = Cast<AUpgradeItem>(ItemCDO))
+		{
+			if (!UpgradeCDO->UpgradeName.IsEmpty()) CardInfo.Name = UpgradeCDO->UpgradeName;
+			if (!UpgradeCDO->Grade.IsEmpty()) CardInfo.Grade = UpgradeCDO->Grade;
+			CardInfo.Icon = UpgradeCDO->UpgradeIcon;
+			CardInfo.Description = UpgradeCDO->UpgradeInfo;
+			CardInfo.bIsUpgrade = true;
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Trying UpgradeCDO..."));
-			AUpgradeItem* UpgradeCDO = Cast<AUpgradeItem>(ItemClass->GetDefaultObject());
-			UE_LOG(LogTemp, Warning, TEXT("UpgradeCDO: %s"), UpgradeCDO ? TEXT("Valid") : TEXT("Null"));
-			if (UpgradeCDO)
-			{
-		
-				UE_LOG(LogTemp, Warning, TEXT("UpgradeName: %s"), *UpgradeCDO->UpgradeName);
-
-				CardInfo.Name = UpgradeCDO->UpgradeName;
-				CardInfo.Grade = UpgradeCDO->Grade;
-				CardInfo.Icon = UpgradeCDO->UpgradeIcon;
-				CardInfo.Description = UpgradeCDO->UpgradeInfo;
-				CardInfo.bIsUpgrade = true;
-			}
+			continue;
 		}
+
 		CardInfos.Add(CardInfo);
 	}
 	return CardInfos;
