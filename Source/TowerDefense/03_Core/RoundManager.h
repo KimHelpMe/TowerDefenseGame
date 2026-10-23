@@ -73,6 +73,8 @@ public:
 	UPROPERTY(EditAnywhere)
 	int32 CurrentEntryIndex;
 
+	bool bRoundSpawnComplete = false;
+
 	FTimerHandle EntryTimerHandle;
 
 	UFUNCTION()
