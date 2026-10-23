@@ -12,7 +12,9 @@ UCLASS()
 class TOWERDEFENSE_API UTowerInfoWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
+protected:
+	virtual void NativeConstruct() override;
 
 public:
 

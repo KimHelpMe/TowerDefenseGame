@@ -1,5 +1,6 @@
 ﻿#include "TowerDefenseGameMode.h"
 #include "MainMenuWidget.h"
+#include "FantasyUITheme.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerSlot.h"
 #include "BaseTower.h"
@@ -34,6 +35,8 @@ ATowerDefenseGameMode::ATowerDefenseGameMode()
 void ATowerDefenseGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+FFantasyUITheme::ApplyToViewport(GetWorld());
 
 	RoundManager = Cast<ARoundManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ARoundManager::StaticClass()));
 

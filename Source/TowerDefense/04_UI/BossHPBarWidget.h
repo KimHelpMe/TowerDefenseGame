@@ -9,7 +9,10 @@ UCLASS()
 class TOWERDEFENSE_API UBossHPBarWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
+protected:
+	virtual void NativeConstruct() override;
+
 public:
 
 	// HP Bar Update.

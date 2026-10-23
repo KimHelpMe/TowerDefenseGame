@@ -9,7 +9,9 @@ UCLASS()
 class TOWERDEFENSE_API UEpicNotifyWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
+protected:
+	virtual void NativeConstruct() override;
 
 public:
 

@@ -1,5 +1,6 @@
 ﻿
 #include "TowerInfoWidget.h"
+#include "FantasyUITheme.h"
 #include "TowerStatComponent.h"
 
 void UTowerInfoWidget::LevelUp()
@@ -19,4 +20,10 @@ void UTowerInfoWidget::InitWidget_Implementation(UTowerStatComponent* Stat)
 	TowerStat = Stat;
 	TowerMana = TowerStat->GetOwner()->GetComponentByClass<UManaComponent>();
 	OwnerTower = Cast<ABaseTower>(TowerStat->GetOwner());
+}
+
+void UTowerInfoWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	FFantasyUITheme::ApplyToWidgetTree(this);
 }
