@@ -1,4 +1,3 @@
-﻿
 #pragma once
 
 #include "CoreMinimal.h"
@@ -6,13 +5,11 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "InputActionValue.h"
-#include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
 #include "CameraManager.generated.h"
-
 
 class UInputMappingContext;
 class UInputAction;
+class UUserWidget;
 
 UCLASS()
 class TOWERDEFENSE_API ACameraManager : public APawn
@@ -20,21 +17,10 @@ class TOWERDEFENSE_API ACameraManager : public APawn
 	GENERATED_BODY()
 
 public:
-
 	ACameraManager();
-
-protected:
-	
-	virtual void BeginPlay() override;
-
-public:	
-
 	virtual void Tick(float DeltaTime) override;
-
-
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-public:
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void UnPossessed() override;
 
 	UPROPERTY(EditAnywhere)
 	UInputMappingContext* CameraIMC;
@@ -46,10 +32,7 @@ public:
 	UInputAction* ZoomAction;
 
 	void Move(const FInputActionValue& Value);
-
 	void Zoom(const FInputActionValue& Value);
-
-public:
 
 	UPROPERTY(EditAnywhere)
 	USceneComponent* RootScene;
@@ -60,16 +43,11 @@ public:
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* Camera;
 
-public:
-
 	UPROPERTY(EditAnywhere)
 	float MoveSpeed;
 
 	UPROPERTY(EditAnywhere, Category="Camera|Input", meta=(ClampMin="0.0"))
 	float MouseRotationSpeed;
-
-	UPROPERTY(VisibleAnywhere, Category="Camera|Input")
-	float MousePitchOffset;
 
 	UPROPERTY(EditAnywhere)
 	float EdgeScrollThreshold;
@@ -77,6 +55,7 @@ public:
 	UPROPERTY(EditAnywhere)
 	float ZoomSpeed;
 
+	// Retain serialized settings used by existing camera Blueprints.
 	UPROPERTY(EditAnywhere)
 	float MinZoom;
 
@@ -91,4 +70,24 @@ public:
 
 	UPROPERTY(VisibleAnywhere)
 	float TargetArmLength;
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+private:
+	void BeginNavigation(APlayerController* PlayerController);
+	void EndNavigation();
+	void RotateView(float YawDelta, float PitchDelta);
+	void ZoomIn();
+	void ZoomOut();
+	void Dolly(float Direction);
+
+	bool bNavigating = false;
+	bool bSavedShowMouseCursor = true;
+	bool bSavedMousePosition = false;
+	FVector2D SavedMousePosition = FVector2D::ZeroVector;
+	float NavigationSpeedScale = 1.f;
+	TWeakObjectPtr<APlayerController> NavigationController;
+	TMap<TWeakObjectPtr<UUserWidget>, float> SavedCursorOpacities;
 };

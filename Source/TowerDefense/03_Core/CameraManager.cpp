@@ -1,11 +1,14 @@
-﻿
 #include "CameraManager.h"
-#include "Engine/GameViewportClient.h"
-#include "GridTile.h"
-#include "GameFramework/PlayerStart.h"
-#include "Kismet/GameplayStatics.h"
-#include "InputCoreTypes.h"
 
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "EnhancedInputSubsystems.h"
+#include "Engine/GameViewportClient.h"
+#include "GameFramework/PlayerInput.h"
+#include "GameFramework/PlayerStart.h"
+#include "GridTile.h"
+#include "InputCoreTypes.h"
+#include "Kismet/GameplayStatics.h"
 
 ACameraManager::ACameraManager()
 {
@@ -13,10 +16,8 @@ ACameraManager::ACameraManager()
 
 	RootScene = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = RootScene;
-
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootScene);
-
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
 
@@ -28,166 +29,225 @@ ACameraManager::ACameraManager()
 	SpringArm->TargetArmLength = 1500.f;
 
 	TargetArmLength = 1500.f;
-
 	MoveSpeed = 1000.f;
 	MouseRotationSpeed = 0.15f;
-	MousePitchOffset = 0.f;
 	EdgeScrollThreshold = 10.f;
 	ZoomSpeed = 200.f;
 	MinZoom = 500.f;
 	MaxZoom = 4000.f;
 	MinPitch = -30.f;
 	MaxPitch = -60.f;
-	
 }
-
 
 void ACameraManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-    // Frame the placement area when the level has no authored player start.
-    if (!UGameplayStatics::GetActorOfClass(this, APlayerStart::StaticClass()))
-    {
-        TArray<AActor*> Tiles;
-        UGameplayStatics::GetAllActorsOfClass(this, AGridTile::StaticClass(), Tiles);
-        FBox Bounds(ForceInit);
-        for (AActor* Tile : Tiles) Bounds += Tile->GetActorLocation();
-        if (Bounds.IsValid)
-        {
-            SetActorLocation(Bounds.GetCenter());
-            const FVector Extent = Bounds.GetExtent();
-            TargetArmLength = FMath::Max(Extent.X, Extent.Y) * 2.4f;
-            MaxZoom = FMath::Max(MaxZoom, TargetArmLength * 1.4f);
-            SpringArm->TargetArmLength = TargetArmLength;
-            SpringArm->SetRelativeRotation(FRotator(-55.f, -90.f, 0.f));
-        }
-    }
+	SpringArm->bUsePawnControlRotation = false;
+	SpringArm->bEnableCameraLag = false;
+	SpringArm->bEnableCameraRotationLag = false;
+	Camera->bUsePawnControlRotation = false;
 
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC)
+	if (!UGameplayStatics::GetActorOfClass(this, APlayerStart::StaticClass()))
 	{
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
-		if (Subsystem)
+		TArray<AActor*> Tiles;
+		UGameplayStatics::GetAllActorsOfClass(this, AGridTile::StaticClass(), Tiles);
+		FBox Bounds(ForceInit);
+		for (AActor* Tile : Tiles) Bounds += Tile->GetActorLocation();
+		if (Bounds.IsValid)
 		{
-			Subsystem->AddMappingContext(CameraIMC, 0);
+			SetActorLocation(Bounds.GetCenter());
+			const FVector Extent = Bounds.GetExtent();
+			SpringArm->TargetArmLength = FMath::Max(Extent.X, Extent.Y) * 2.4f;
+			SpringArm->SetRelativeRotation(FRotator(-55.f, -90.f, 0.f));
 		}
 	}
+	TargetArmLength = SpringArm->TargetArmLength;
 }
 
+void ACameraManager::BeginNavigation(APlayerController* PC)
+{
+	if (bNavigating || !PC) return;
+	bNavigating = true;
+	NavigationController = PC;
+	bSavedShowMouseCursor = PC->bShowMouseCursor;
+	bSavedMousePosition = PC->GetMousePosition(SavedMousePosition.X, SavedMousePosition.Y);
+	SavedCursorOpacities.Reset();
+
+	TArray<UUserWidget*> Widgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, UUserWidget::StaticClass(), false);
+	for (UUserWidget* Widget : Widgets)
+	{
+		if (Widget->GetClass()->GetName().Contains(TEXT("WBP_Cursor")))
+		{
+			SavedCursorOpacities.Add(Widget, Widget->GetRenderOpacity());
+			Widget->SetRenderOpacity(0.f);
+		}
+	}
+
+	PC->bShowMouseCursor = false;
+	FInputModeGameOnly InputMode;
+	InputMode.SetConsumeCaptureMouseDown(false);
+	PC->SetInputMode(InputMode);
+}
+
+void ACameraManager::EndNavigation()
+{
+	if (!bNavigating) return;
+	bNavigating = false;
+	for (const auto& Entry : SavedCursorOpacities)
+	{
+		if (UUserWidget* Widget = Entry.Key.Get()) Widget->SetRenderOpacity(Entry.Value);
+	}
+	SavedCursorOpacities.Reset();
+
+	if (APlayerController* PC = NavigationController.Get())
+	{
+		PC->bShowMouseCursor = bSavedShowMouseCursor;
+		if (GetWorld() && !GetWorld()->bIsTearingDown)
+		{
+			FInputModeGameAndUI InputMode;
+			InputMode.SetHideCursorDuringCapture(false);
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			PC->SetInputMode(InputMode);
+			if (bSavedMousePosition)
+			{
+				PC->SetMouseLocation(FMath::RoundToInt(SavedMousePosition.X), FMath::RoundToInt(SavedMousePosition.Y));
+			}
+		}
+	}
+	NavigationController.Reset();
+}
+
+void ACameraManager::RotateView(float YawDelta, float PitchDelta)
+{
+	const FRotator OldRotation = SpringArm->GetComponentRotation();
+	FRotator NewRotation = OldRotation;
+	NewRotation.Yaw = FRotator::NormalizeAxis(NewRotation.Yaw + YawDelta);
+	NewRotation.Pitch = FMath::Clamp(FRotator::NormalizeAxis(NewRotation.Pitch) + PitchDelta, -89.f, 89.f);
+	NewRotation.Roll = 0.f;
+
+	// Rotating a spring arm normally orbits its pivot. Offset the pivot so the
+	// camera stays at the same world position, like the editor's flight camera.
+	const FVector SocketOffset = FVector(-SpringArm->TargetArmLength, 0.f, 0.f)
+		+ SpringArm->SocketOffset + Camera->GetRelativeLocation();
+	AddActorWorldOffset(OldRotation.RotateVector(SocketOffset) - NewRotation.RotateVector(SocketOffset));
+	SpringArm->SetWorldRotation(NewRotation);
+}
 
 void ACameraManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	UWorld* World = GetWorld();
 	if (!PC || !World || !World->GetGameViewport() || World->IsPaused())
 	{
+		EndNavigation();
 		return;
 	}
 
-	FVector2D ViewportSize;
-	World->GetGameViewport()->GetViewportSize(ViewportSize);
+	const bool bFly = PC->IsInputKeyDown(EKeys::RightMouseButton);
+	const bool bPan = PC->IsInputKeyDown(EKeys::MiddleMouseButton);
+	if (bFly || bPan) BeginNavigation(PC);
+	else EndNavigation();
 
-	float MouseX = 0.f;
-	float MouseY = 0.f;
-	const bool bRotateCamera = PC->IsInputKeyDown(EKeys::RightMouseButton);
-	if (bRotateCamera)
+	const float MouseX = PC->PlayerInput ? PC->PlayerInput->GetRawKeyValue(EKeys::MouseX) : 0.f;
+	const float MouseY = PC->PlayerInput ? PC->PlayerInput->GetRawKeyValue(EKeys::MouseY) : 0.f;
+	if (bFly)
 	{
-		PC->GetInputMouseDelta(MouseX, MouseY);
+		// Unreal's MouseY is positive when the mouse moves up.
+		RotateView(MouseX * MouseRotationSpeed, MouseY * MouseRotationSpeed);
+		const FRotationMatrix ViewRotation(SpringArm->GetComponentRotation());
+		const float Forward = (PC->IsInputKeyDown(EKeys::W) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::S) ? 1.f : 0.f);
+		const float Right = (PC->IsInputKeyDown(EKeys::D) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::A) ? 1.f : 0.f);
+		const float Up = (PC->IsInputKeyDown(EKeys::E) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::Q) ? 1.f : 0.f);
+		const bool bFast = PC->IsInputKeyDown(EKeys::LeftShift) || PC->IsInputKeyDown(EKeys::RightShift);
+		const FVector Direction = ViewRotation.GetUnitAxis(EAxis::X) * Forward
+			+ ViewRotation.GetUnitAxis(EAxis::Y) * Right + FVector::UpVector * Up;
+		AddActorWorldOffset(Direction.GetClampedToMaxSize(1.f) * MoveSpeed * NavigationSpeedScale * (bFast ? 3.f : 1.f) * DeltaTime);
 	}
-
-	FRotator ArmRotation = SpringArm->GetRelativeRotation();
-	if (bRotateCamera)
+	else if (bPan)
 	{
-		ArmRotation.Yaw = FRotator::NormalizeAxis(ArmRotation.Yaw + MouseX * MouseRotationSpeed);
-		MousePitchOffset = FMath::Clamp(MousePitchOffset - MouseY * MouseRotationSpeed, -30.f, 30.f);
+		const FRotationMatrix ViewRotation(SpringArm->GetComponentRotation());
+		AddActorWorldOffset((-ViewRotation.GetUnitAxis(EAxis::Y) * MouseX
+			- ViewRotation.GetUnitAxis(EAxis::Z) * MouseY) * MoveSpeed * 0.002f);
 	}
-
-	float ForwardInput = (PC->IsInputKeyDown(EKeys::W) ? 1.f : 0.f)
-		- (PC->IsInputKeyDown(EKeys::S) ? 1.f : 0.f);
-	float RightInput = (PC->IsInputKeyDown(EKeys::D) ? 1.f : 0.f)
-		- (PC->IsInputKeyDown(EKeys::A) ? 1.f : 0.f);
-
-	FVector2D EdgeInput = FVector2D::ZeroVector;
-	float MouseXPosition = 0.f;
-	float MouseYPosition = 0.f;
-	const bool bMouseInViewport = PC->GetMousePosition(MouseXPosition, MouseYPosition)
-		&& MouseXPosition >= 0.f && MouseYPosition >= 0.f
-		&& MouseXPosition <= ViewportSize.X && MouseYPosition <= ViewportSize.Y;
-	if (bMouseInViewport && !bRotateCamera)
+	else
 	{
-		if (MouseXPosition <= EdgeScrollThreshold)
+		FVector2D ViewportSize;
+		World->GetGameViewport()->GetViewportSize(ViewportSize);
+		float X = 0.f, Y = 0.f;
+		if (PC->GetMousePosition(X, Y) && X >= 0.f && Y >= 0.f && X <= ViewportSize.X && Y <= ViewportSize.Y)
 		{
-			EdgeInput.X = -1.f;
-		}
-		else if (MouseXPosition >= ViewportSize.X - EdgeScrollThreshold)
-		{
-			EdgeInput.X = 1.f;
-		}
-
-		if (MouseYPosition <= EdgeScrollThreshold)
-		{
-			EdgeInput.Y = 1.f;
-		}
-		else if (MouseYPosition >= ViewportSize.Y - EdgeScrollThreshold)
-		{
-			EdgeInput.Y = -1.f;
+			FVector2D Edge = FVector2D::ZeroVector;
+			if (X <= EdgeScrollThreshold) Edge.X = -1.f;
+			else if (X >= ViewportSize.X - EdgeScrollThreshold) Edge.X = 1.f;
+			if (Y <= EdgeScrollThreshold) Edge.Y = 1.f;
+			else if (Y >= ViewportSize.Y - EdgeScrollThreshold) Edge.Y = -1.f;
+			const FRotationMatrix CameraYaw(FRotator(0.f, SpringArm->GetComponentRotation().Yaw, 0.f));
+			const FVector Direction = CameraYaw.GetUnitAxis(EAxis::X) * Edge.Y + CameraYaw.GetUnitAxis(EAxis::Y) * Edge.X;
+			AddActorWorldOffset(Direction.GetSafeNormal() * MoveSpeed * DeltaTime);
 		}
 	}
-
-	const FVector2D MoveInput(RightInput + EdgeInput.X, ForwardInput + EdgeInput.Y);
-	if (!MoveInput.IsNearlyZero())
-	{
-		const FRotationMatrix CameraYaw(FRotator(0.f, ArmRotation.Yaw, 0.f));
-		const FVector MoveDirection =
-			(CameraYaw.GetUnitAxis(EAxis::X) * MoveInput.Y
-				+ CameraYaw.GetUnitAxis(EAxis::Y) * MoveInput.X).GetSafeNormal();
-		AddActorWorldOffset(MoveDirection * MoveSpeed * DeltaTime);
-	}
-
-	SpringArm->TargetArmLength = FMath::FInterpTo(
-		SpringArm->TargetArmLength, TargetArmLength, DeltaTime, 5.f);
-
-	const float ZoomAlpha = FMath::GetRangePct(MinZoom, MaxZoom, SpringArm->TargetArmLength);
-	const float ZoomPitch = FMath::Lerp(MinPitch, MaxPitch, ZoomAlpha);
-	ArmRotation.Pitch = FMath::Clamp(ZoomPitch + MousePitchOffset, -85.f, -15.f);
-	ArmRotation.Roll = 0.f;
-	SpringArm->SetRelativeRotation(ArmRotation);
 }
-
 
 void ACameraManager::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-    {
-        if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-            if (CameraIMC) Subsystem->AddMappingContext(CameraIMC, 0);
-    }
-    UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent);
-	if (EIC)
 	{
-		// Camera panning uses the mouse at the viewport edges.
-		EIC->BindAction(ZoomAction, ETriggerEvent::Triggered, this, &ACameraManager::Zoom);
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			if (CameraIMC) Subsystem->AddMappingContext(CameraIMC, 0);
+		}
 	}
-
+	// Bind wheel keys directly so navigation does not depend on an authored IA/IMC.
+	PlayerInputComponent->BindKey(EKeys::MouseScrollUp, IE_Pressed, this, &ACameraManager::ZoomIn);
+	PlayerInputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &ACameraManager::ZoomOut);
 }
 
 void ACameraManager::Move(const FInputActionValue& Value)
 {
-	FVector2D Input = Value.Get<FVector2D>();
-    FVector MoveDirection = FVector(Input.X, Input.Y, 0.f) * MoveSpeed * GetWorld()->GetDeltaSeconds();
-	AddActorWorldOffset(MoveDirection);
+	if (!bNavigating) return;
+	const FVector2D Input = Value.Get<FVector2D>();
+	const FRotationMatrix ViewRotation(SpringArm->GetComponentRotation());
+	AddActorWorldOffset((ViewRotation.GetUnitAxis(EAxis::X) * Input.Y
+		+ ViewRotation.GetUnitAxis(EAxis::Y) * Input.X).GetClampedToMaxSize(1.f) * MoveSpeed * GetWorld()->GetDeltaSeconds());
+}
 
+void ACameraManager::Dolly(float Direction)
+{
+	if (GetWorld() && !GetWorld()->IsPaused())
+	{
+		AddActorWorldOffset(Camera->GetForwardVector() * Direction * ZoomSpeed);
+	}
+}
+
+void ACameraManager::ZoomIn()
+{
+	if (bNavigating) NavigationSpeedScale = FMath::Clamp(NavigationSpeedScale * 1.1f, 0.1f, 20.f);
+	else Dolly(1.f);
+}
+
+void ACameraManager::ZoomOut()
+{
+	if (bNavigating) NavigationSpeedScale = FMath::Clamp(NavigationSpeedScale / 1.1f, 0.1f, 20.f);
+	else Dolly(-1.f);
 }
 
 void ACameraManager::Zoom(const FInputActionValue& Value)
 {
-	const float Input = Value.Get<float>();
-	TargetArmLength += Input * ZoomSpeed;
-	TargetArmLength = FMath::Clamp(TargetArmLength, MinZoom, MaxZoom);
+	Dolly(-Value.Get<float>());
 }
 
+void ACameraManager::UnPossessed()
+{
+	EndNavigation();
+	Super::UnPossessed();
+}
+
+void ACameraManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	EndNavigation();
+	Super::EndPlay(EndPlayReason);
+}
