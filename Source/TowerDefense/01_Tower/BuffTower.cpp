@@ -26,8 +26,14 @@ void ABuffTower::BeginPlay()
 
 float ABuffTower::GetRangeRadius()
 {
-    if (TowerStatComponent && TowerStatComponent->TowerDataTable)
+    // 사거리 데칼이 20Hz로 호출하므로 데이터 행 조회는 레벨/테이블이 바뀔 때만 다시 한다.
+    const bool bCacheValid = TowerStatComponent
+        && CachedBuffComponentLevel == TowerStatComponent->CurrentLevel
+        && CachedBuffComponentTable == TowerStatComponent->TowerDataTable;
+    if (TowerStatComponent && TowerStatComponent->TowerDataTable && !bCacheValid)
     {
+        CachedBuffComponentLevel = TowerStatComponent->CurrentLevel;
+        CachedBuffComponentTable = TowerStatComponent->TowerDataTable;
         const FName Key(*FString::Printf(TEXT("%s_Lv%d"), *TowerStatComponent->TowerRowName.ToString(), TowerStatComponent->CurrentLevel));
         if (const FTowerDataRow* Row = TowerStatComponent->TowerDataTable->FindRow<FTowerDataRow>(Key, TEXT("Buff range")))
         {

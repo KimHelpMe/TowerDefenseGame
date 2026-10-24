@@ -27,7 +27,7 @@ public:
 
 public:
 	
-	virtual void ExecuteAttack(TArray<AEnemy*>Targets);
+	virtual void ExecuteAttack(const TArray<AEnemy*>& Targets);
 	
 	UFUNCTION()
 	FVector GetMuzzleLocation();

@@ -68,7 +68,8 @@ void UTowerRangeDecalComponent::RefreshDecal()
     }
     if (DynamicMaterial)
     {
-        TargetDecal->SetDecalMaterial(DynamicMaterial);
+        // 20Hz 갱신마다 같은 머티리얼을 다시 넣으면 렌더 상태가 매번 갱신되므로 바뀔 때만 설정.
+        if (TargetDecal->GetDecalMaterial() != DynamicMaterial) TargetDecal->SetDecalMaterial(DynamicMaterial);
         const FLinearColor SafeColor = !IsFiniteColor(RangeColor) ? FLinearColor::White : RangeColor;
         DynamicMaterial->SetVectorParameterValue(TEXT("RangeColor"), SafeColor);
         const float SafeOpacity = FMath::IsFinite(Opacity) ? Opacity : 1.f;

@@ -22,7 +22,7 @@ void UAttackTypeComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 
 }
 
-void UAttackTypeComponent::ExecuteAttack(TArray<AEnemy*> Targets)
+void UAttackTypeComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 {
 }
 

@@ -26,6 +26,6 @@ public:
 
 public:
 
-	virtual void ExecuteAttack(TArray<AEnemy*>Targets) override;
+	virtual void ExecuteAttack(const TArray<AEnemy*>& Targets) override;
 
 };

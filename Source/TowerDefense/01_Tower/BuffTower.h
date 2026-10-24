@@ -33,4 +33,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+private:
+	// GetRangeRadius에서 버프 컴포넌트를 고른 레벨/테이블(바뀔 때만 데이터 행을 다시 조회).
+	int32 CachedBuffComponentLevel = INDEX_NONE;
+	TWeakObjectPtr<UDataTable> CachedBuffComponentTable;
+
 };

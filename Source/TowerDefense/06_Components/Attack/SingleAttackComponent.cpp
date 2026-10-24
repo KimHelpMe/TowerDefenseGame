@@ -4,7 +4,7 @@
 #include "TowerStatComponent.h"
 #include "Enemy.h"
 
-void USingleAttackComponent::ExecuteAttack(TArray<AEnemy*>Targets)
+void USingleAttackComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 {
 	UE_LOG(LogTowerDefense, Verbose, TEXT("ExecuteAttack called, Targets: %d"), Targets.Num());
 
