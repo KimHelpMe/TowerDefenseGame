@@ -95,26 +95,27 @@ void ASynergyManager::UpdateSynergies()
 			}
 		}
 
+		// 현재 단계 버프 목록(0 단계면 버프 없음).
+		TArray<FBuffEffect> StepBuffs;
+		if (NewStep > 0)
+		{
+			for (FBuffEffect Effect : Row->Steps[NewStep - 1].Effects)
+			{
+				Effect.Source = this;
+				Effect.SourceKey = BuffSourceKey;
+				StepBuffs.Add(Effect);
+			}
+		}
+
 		// 단계가 그대로여도 새로 들어온 타워가 버프를 받도록 해당 태그 타워 전체를 갱신.
+		// 이미 같은 버프가 걸린 타워는 ReplaceBuffsByKey가 재계산 없이 넘어간다.
 		for (ABaseTower* Tower : FieldTowers)
 		{
 			UTowerStatComponent* Stat = Tower->GetComponentByClass<UTowerStatComponent>();
 			if (!Stat) continue;
 			if (!Stat->SynergyTags.HasTag(Row->SynergyTag)) continue;
 
-			// 현재 시너지 행의 버프만 제거.
-			Stat->RemoveBuffByKey(BuffSourceKey);
-
-			// 현재 단계 버프 적용(0 이면 버프 없음).
-			if (NewStep > 0)
-			{
-				for (FBuffEffect Effect : Row->Steps[NewStep - 1].Effects)
-				{
-					Effect.Source = this;
-					Effect.SourceKey = BuffSourceKey;
-					Stat->ModifyStat(Effect);
-				}
-			}
+			Stat->ReplaceBuffsByKey(BuffSourceKey, StepBuffs);
 		}
 		// ActiveSynergySteps 업데이트.
 		ActiveSynergySteps.Add(Row->SynergyTag, NewStep);

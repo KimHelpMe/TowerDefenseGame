@@ -59,11 +59,48 @@ void UStatComponent::RemoveBuffByKey(FName SourceKey)
 {
 	if (SourceKey.IsNone()) return;
 
-	ActiveBuffs.RemoveAll([SourceKey](const FBuffEffect& Buff)
+	const int32 Removed = ActiveBuffs.RemoveAll([SourceKey](const FBuffEffect& Buff)
 		{
 			return Buff.SourceKey == SourceKey;
 		});
 
+	// 지울 버프가 없었으면 재계산(사거리 Sphere 갱신 등)을 생략.
+	if (Removed > 0)
+	{
+		RecalculateStats();
+	}
+}
+
+void UStatComponent::ReplaceBuffsByKey(FName SourceKey, const TArray<FBuffEffect>& NewBuffs)
+{
+	if (SourceKey.IsNone()) return;
+
+	// 이미 같은 버프가 걸려 있으면 아무것도 하지 않는다(주기적 재적용 시 대부분 이 경우).
+	TArray<const FBuffEffect*> Existing;
+	for (const FBuffEffect& Buff : ActiveBuffs)
+	{
+		if (Buff.SourceKey == SourceKey) Existing.Add(&Buff);
+	}
+	bool bSame = Existing.Num() == NewBuffs.Num();
+	for (int32 Index = 0; bSame && Index < NewBuffs.Num(); ++Index)
+	{
+		const FBuffEffect& A = *Existing[Index];
+		const FBuffEffect& B = NewBuffs[Index];
+		bSame = A.StatTag == B.StatTag && A.ValueType == B.ValueType && A.Source == B.Source
+			&& FMath::IsNearlyEqual(A.Value, B.Value);
+	}
+	if (bSame) return;
+
+	// 바뀐 경우에만 교체하고 재계산은 한 번만 한다.
+	ActiveBuffs.RemoveAll([SourceKey](const FBuffEffect& Buff)
+		{
+			return Buff.SourceKey == SourceKey;
+		});
+	for (FBuffEffect Buff : NewBuffs)
+	{
+		Buff.SourceKey = SourceKey;
+		ActiveBuffs.Add(Buff);
+	}
 	RecalculateStats();
 }
 
