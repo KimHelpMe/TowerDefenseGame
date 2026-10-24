@@ -172,6 +172,8 @@ void UTowerInfoWidget::InitWidget_Implementation(UTowerStatComponent* Stat)
 	TowerStat = Stat;
 	TowerMana = TowerStat->GetOwner()->GetComponentByClass<UManaComponent>();
 	OwnerTower = Cast<ABaseTower>(TowerStat->GetOwner());
+	// 새 타워가 지정되면 갱신 주기를 기다리지 않고 다음 틱에 바로 표시.
+	bRefreshPending = true;
 }
 
 void UTowerInfoWidget::NativeConstruct()
@@ -312,6 +314,17 @@ void UTowerInfoWidget::BuildDetailsPanel(const FString& Details)
 void UTowerInfoWidget::NativeTick(const FGeometry& Geometry, float DeltaTime)
 {
 	Super::NativeTick(Geometry, DeltaTime);
+
+	// 정보 문자열 조립·데이터 테이블 조회·위젯 검색이 무거우므로 매 프레임이 아닌 0.1초 간격으로 갱신.
+	TimeSinceRefresh += DeltaTime;
+	if (!bRefreshPending && TimeSinceRefresh < RefreshInterval) return;
+	bRefreshPending = false;
+	TimeSinceRefresh = 0.f;
+	RefreshInfo();
+}
+
+void UTowerInfoWidget::RefreshInfo()
+{
 	if (!IsValid(TowerStat)) return;
 
 	auto SetText = [this](const TCHAR* Name, const FString& Value)
