@@ -44,6 +44,12 @@ void ACameraManager::BeginPlay()
 	Super::BeginPlay();
 
 	SpringArm->bUsePawnControlRotation = false;
+	// The boom can ignore parent yaw while its component still inherits it.
+	// Keep its rendered rotation in world space so rotated Pawn spawns cannot
+	// turn the movement basis by 90 degrees relative to the visible camera.
+	const FRotator InitialViewRotation = SpringArm->GetTargetRotation();
+	SpringArm->SetAbsolute(SpringArm->IsUsingAbsoluteLocation(), true, SpringArm->IsUsingAbsoluteScale());
+	SpringArm->SetWorldRotation(InitialViewRotation);
 	SpringArm->bEnableCameraLag = false;
 	SpringArm->bEnableCameraRotationLag = false;
 	Camera->bUsePawnControlRotation = false;
@@ -59,7 +65,7 @@ void ACameraManager::BeginPlay()
 			SetActorLocation(Bounds.GetCenter());
 			const FVector Extent = Bounds.GetExtent();
 			SpringArm->TargetArmLength = FMath::Max(Extent.X, Extent.Y) * 2.4f;
-			SpringArm->SetRelativeRotation(FRotator(-55.f, -90.f, 0.f));
+			SpringArm->SetWorldRotation(FRotator(-55.f, -90.f, 0.f));
 		}
 	}
 	TargetArmLength = SpringArm->TargetArmLength;
@@ -121,7 +127,7 @@ void ACameraManager::EndNavigation()
 
 void ACameraManager::RotateView(float YawDelta, float PitchDelta)
 {
-	const FRotator OldRotation = SpringArm->GetComponentRotation();
+	const FRotator OldRotation = SpringArm->GetTargetRotation();
 	FRotator NewRotation = OldRotation;
 	NewRotation.Yaw = FRotator::NormalizeAxis(NewRotation.Yaw + YawDelta);
 	NewRotation.Pitch = FMath::Clamp(FRotator::NormalizeAxis(NewRotation.Pitch) + PitchDelta, -89.f, 89.f);
@@ -157,7 +163,7 @@ void ACameraManager::Tick(float DeltaTime)
 	{
 		// Unreal's MouseY is positive when the mouse moves up.
 		RotateView(MouseX * MouseRotationSpeed, MouseY * MouseRotationSpeed);
-		const FRotationMatrix ViewRotation(SpringArm->GetComponentRotation());
+		const FRotationMatrix ViewRotation(SpringArm->GetTargetRotation());
 		const float Forward = (PC->IsInputKeyDown(EKeys::W) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::S) ? 1.f : 0.f);
 		const float Right = (PC->IsInputKeyDown(EKeys::D) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::A) ? 1.f : 0.f);
 		const float Up = (PC->IsInputKeyDown(EKeys::E) ? 1.f : 0.f) - (PC->IsInputKeyDown(EKeys::Q) ? 1.f : 0.f);
@@ -168,7 +174,7 @@ void ACameraManager::Tick(float DeltaTime)
 	}
 	else if (bPan)
 	{
-		const FRotationMatrix ViewRotation(SpringArm->GetComponentRotation());
+		const FRotationMatrix ViewRotation(SpringArm->GetTargetRotation());
 		AddActorWorldOffset((-ViewRotation.GetUnitAxis(EAxis::Y) * MouseX
 			- ViewRotation.GetUnitAxis(EAxis::Z) * MouseY) * MoveSpeed * 0.002f);
 	}
@@ -184,7 +190,7 @@ void ACameraManager::Tick(float DeltaTime)
 			else if (X >= ViewportSize.X - EdgeScrollThreshold) Edge.X = 1.f;
 			if (Y <= EdgeScrollThreshold) Edge.Y = 1.f;
 			else if (Y >= ViewportSize.Y - EdgeScrollThreshold) Edge.Y = -1.f;
-			const FRotationMatrix CameraYaw(FRotator(0.f, SpringArm->GetComponentRotation().Yaw, 0.f));
+			const FRotationMatrix CameraYaw(FRotator(0.f, SpringArm->GetTargetRotation().Yaw, 0.f));
 			const FVector Direction = CameraYaw.GetUnitAxis(EAxis::X) * Edge.Y + CameraYaw.GetUnitAxis(EAxis::Y) * Edge.X;
 			AddActorWorldOffset(Direction.GetSafeNormal() * MoveSpeed * DeltaTime);
 		}
@@ -210,7 +216,7 @@ void ACameraManager::Move(const FInputActionValue& Value)
 {
 	if (!bNavigating) return;
 	const FVector2D Input = Value.Get<FVector2D>();
-	const FRotationMatrix ViewRotation(SpringArm->GetComponentRotation());
+	const FRotationMatrix ViewRotation(SpringArm->GetTargetRotation());
 	AddActorWorldOffset((ViewRotation.GetUnitAxis(EAxis::X) * Input.Y
 		+ ViewRotation.GetUnitAxis(EAxis::Y) * Input.X).GetClampedToMaxSize(1.f) * MoveSpeed * GetWorld()->GetDeltaSeconds());
 }

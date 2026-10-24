@@ -9,6 +9,7 @@
 #include "InputKeyEventArgs.h"
 #include "InputCoreTypes.h"
 #include "CameraManager.h"
+#include "Camera/PlayerCameraManager.h"
 #include "MainMenuWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 
@@ -47,7 +48,9 @@ namespace
 				PC->SetInputMode(Mode);
 				SavedTransform = Pawn->GetActorTransform();
 				SavedArmRotation = Pawn->SpringArm->GetComponentRotation();
-				SavedEdgeThreshold = Pawn->EdgeScrollThreshold;
+				// Reproduce camera/Pawn rotation disagreement from rotated player spawns.
+                Pawn->SetActorRotation(FRotator(0.f, 90.f, 0.f));
+                SavedEdgeThreshold = Pawn->EdgeScrollThreshold;
 				Pawn->EdgeScrollThreshold = -1.f;
 			}
 			else if (!Pawn.IsValid() || !PC.IsValid())
@@ -64,68 +67,80 @@ namespace
 					break;
 				case 2:
 					Test->TestFalse(TEXT("Right mouse captures and hides the cursor"), PC->bShowMouseCursor);
-					Before = Pawn->Camera->GetComponentLocation();
-					RotationBefore = Pawn->Camera->GetComponentRotation();
+					Before = PC->PlayerCameraManager->GetCameraLocation();
+					RotationBefore = PC->PlayerCameraManager->GetCameraRotation();
 					Axis(EKeys::MouseX, 60.f);
 					Axis(EKeys::MouseY, 35.f);
 					break;
 				case 3:
 				{
-					const FRotator Rotation = Pawn->Camera->GetComponentRotation();
+					const FRotator Rotation = PC->PlayerCameraManager->GetCameraRotation();
 					Test->TestTrue(TEXT("Mouse X changes yaw"), FMath::Abs(FMath::FindDeltaAngleDegrees(RotationBefore.Yaw, Rotation.Yaw)) > 5.f);
 					Test->TestTrue(TEXT("Mouse up looks up"), Rotation.Pitch > RotationBefore.Pitch + 2.f);
-					Test->TestTrue(TEXT("Looking rotates in place instead of orbiting"), FVector::Dist(Before, Pawn->Camera->GetComponentLocation()) < 1.f);
-					Before = Pawn->Camera->GetComponentLocation();
+					Test->TestTrue(TEXT("Looking rotates in place instead of orbiting"), FVector::Dist(Before, PC->PlayerCameraManager->GetCameraLocation()) < 1.f);
+					Before = PC->PlayerCameraManager->GetCameraLocation();
 					Key(EKeys::W, true);
 					break;
 				}
 				case 4:
 					Key(EKeys::W, false);
-					CheckDirection(TEXT("W flies forward including camera pitch"), Pawn->Camera->GetForwardVector());
-					Before = Pawn->Camera->GetComponentLocation();
-					Key(EKeys::D, true);
+					CheckDirection(TEXT("W moves forward in the rendered view with Pawn yaw 90"), PC->PlayerCameraManager->GetCameraRotation().Vector());
+					Before = PC->PlayerCameraManager->GetCameraLocation();
+					Key(EKeys::S, true);
 					break;
 				case 5:
-					Key(EKeys::D, false);
-					CheckDirection(TEXT("D strafes right"), Pawn->Camera->GetRightVector());
-					Before = Pawn->Camera->GetComponentLocation();
-					Key(EKeys::E, true);
+					Key(EKeys::S, false);
+					CheckDirection(TEXT("S moves backward in the rendered view with Pawn yaw 90"), -PC->PlayerCameraManager->GetCameraRotation().Vector());
+					Before = PC->PlayerCameraManager->GetCameraLocation();
+					Key(EKeys::D, true);
 					break;
 				case 6:
-					Key(EKeys::E, false);
-					CheckDirection(TEXT("E moves up"), FVector::UpVector);
-					Before = Pawn->Camera->GetComponentLocation();
-					Key(EKeys::Q, true);
+					Key(EKeys::D, false);
+					CheckDirection(TEXT("D moves right in the rendered view with Pawn yaw 90"), FRotationMatrix(PC->PlayerCameraManager->GetCameraRotation()).GetUnitAxis(EAxis::Y));
+					Before = PC->PlayerCameraManager->GetCameraLocation();
+					Key(EKeys::A, true);
 					break;
 				case 7:
+					Key(EKeys::A, false);
+					CheckDirection(TEXT("A moves left in the rendered view with Pawn yaw 90"), -FRotationMatrix(PC->PlayerCameraManager->GetCameraRotation()).GetUnitAxis(EAxis::Y));
+					Before = PC->PlayerCameraManager->GetCameraLocation();
+					Key(EKeys::E, true);
+					break;
+				case 8:
+					Key(EKeys::E, false);
+					CheckDirection(TEXT("E moves up"), FVector::UpVector);
+					Before = PC->PlayerCameraManager->GetCameraLocation();
+					Key(EKeys::Q, true);
+					break;
+				case 9:
 					Key(EKeys::Q, false);
 					CheckDirection(TEXT("Q moves down"), -FVector::UpVector);
 					Key(EKeys::RightMouseButton, false);
 					break;
-				case 8:
+				case 10:
 					Test->TestTrue(TEXT("Releasing right mouse restores the cursor"), PC->bShowMouseCursor);
-					Before = Pawn->Camera->GetComponentLocation();
+					Before = PC->PlayerCameraManager->GetCameraLocation();
 					Key(EKeys::W, true);
 					break;
-				case 9:
+				case 11:
 					Key(EKeys::W, false);
-					Test->TestTrue(TEXT("W outside flight mode does not move the camera"), FVector::Dist(Before, Pawn->Camera->GetComponentLocation()) < 1.f);
-					Before = Pawn->Camera->GetComponentLocation();
+					Test->TestTrue(TEXT("W outside flight mode does not move the camera"), FVector::Dist(Before, PC->PlayerCameraManager->GetCameraLocation()) < 1.f);
+					Before = PC->PlayerCameraManager->GetCameraLocation();
 					Key(EKeys::MouseScrollUp, true);
 					Key(EKeys::MouseScrollUp, false);
 					break;
-				case 10:
-					CheckDirection(TEXT("Wheel up dollies forward"), Pawn->Camera->GetForwardVector());
-					Before = Pawn->Camera->GetComponentLocation();
+				case 12:
+					CheckDirection(TEXT("Wheel up dollies forward"), PC->PlayerCameraManager->GetCameraRotation().Vector());
+					Before = PC->PlayerCameraManager->GetCameraLocation();
 					Key(EKeys::MouseScrollDown, true);
 					Key(EKeys::MouseScrollDown, false);
 					break;
-				case 11:
-					CheckDirection(TEXT("Wheel down dollies backward"), -Pawn->Camera->GetForwardVector());
+				case 13:
+					CheckDirection(TEXT("Wheel down dollies backward"), -PC->PlayerCameraManager->GetCameraRotation().Vector());
 					Pawn->SetActorTransform(SavedTransform);
 					Pawn->SpringArm->SetWorldRotation(SavedArmRotation);
 					Pawn->EdgeScrollThreshold = SavedEdgeThreshold;
-					Test->AddInfo(TEXT("Verified PIE mouse capture, yaw/pitch, fixed camera position while looking, W/D/Q/E flight, release, and wheel dolly."));
+					Test->AddInfo(TEXT("Verified all WASD directions against PlayerCameraManager's rendered view at Pawn yaw 90, plus mouse look, Q/E, cursor release, and wheel dolly."));
 					return true;
 				}
 			}
@@ -145,7 +160,7 @@ namespace
 		}
 		void CheckDirection(const TCHAR* Label, const FVector& Expected)
 		{
-			const FVector Delta = Pawn->Camera->GetComponentLocation() - Before;
+			const FVector Delta = PC->PlayerCameraManager->GetCameraLocation() - Before;
 			Test->TestTrue(Label, Delta.Size() > 5.f && FVector::DotProduct(Delta.GetSafeNormal(), Expected.GetSafeNormal()) > 0.98f);
 		}
 		FAutomationTestBase* Test;
