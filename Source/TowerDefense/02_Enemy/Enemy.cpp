@@ -176,6 +176,10 @@ void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 		UE_LOG(LogTemp, Warning, TEXT("FinalDamage: %f"), FinalDamage);
 	}
 
+	// 속성 저항이 1을 넘거나 배율 데이터가 음수면 피해가 음수가 될 수 있다.
+	// 음수 피해가 실드를 늘리지 않도록 0 이상으로 제한.
+	if (!FMath::IsFinite(FinalDamage) || FinalDamage <= 0.f) return;
+
 	// 실드.
 	if (ShieldComponent)
 	{
