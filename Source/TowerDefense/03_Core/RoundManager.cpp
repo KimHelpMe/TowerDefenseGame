@@ -60,16 +60,12 @@ void ARoundManager::UpdateRoundTick()
 			GameMode->AddExp(Row->ExpReward);
 		}
 
-		if (CurrentRound >= MaxRound)
-		{
-			GetWorldTimerManager().ClearTimer(RoundTimerHandle);
-			return;
-		}
-
+		// Last round cleared (MaxRound reached or no more round data): victory.
 		const FString NextRowKey = FString::Printf(TEXT("Round_%02d"), CurrentRound + 1);
-		if (!RoundDataTable->FindRow<FRoundDataRow>(FName(*NextRowKey), TEXT("")))
+		if (CurrentRound >= MaxRound || !RoundDataTable->FindRow<FRoundDataRow>(FName(*NextRowKey), TEXT("")))
 		{
 			GetWorldTimerManager().ClearTimer(RoundTimerHandle);
+			GameMode->TriggerVictory();
 			return;
 		}
 	}
