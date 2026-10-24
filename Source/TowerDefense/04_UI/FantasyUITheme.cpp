@@ -1,4 +1,4 @@
-#include "FantasyUITheme.h"
+﻿#include "FantasyUITheme.h"
 #include "UIEffectFormatting.h"
 #include "SynergyManager.h"
 #include "GachaManager.h"
@@ -11,6 +11,9 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/ScrollBox.h"
 #include "Components/HorizontalBox.h"
@@ -113,6 +116,74 @@ namespace
 		}
 	}
 
+    void ApplyGachaCard(UUserWidget* Widget)
+    {
+        AGachaManager* Manager = Cast<AGachaManager>(UGameplayStatics::GetActorOfClass(Widget, AGachaManager::StaticClass()));
+        FIntProperty* IndexProperty = FindFProperty<FIntProperty>(Widget->GetClass(), TEXT("CardIndex"));
+        if (!Manager || !IndexProperty) return;
+        const TArray<FGachaCardInfo> Infos = Manager->BuildCardInfos(Manager->CurrentRollResult);
+        const int32 Index = IndexProperty->GetPropertyValue_InContainer(Widget);
+        if (!Infos.IsValidIndex(Index)) return;
+        const FGachaCardInfo& Info = Infos[Index];
+        // Preserve the original game's rarity palette after the general theme pass.
+        FLinearColor GradeColor(.6f,.6f,.6f,1.f);
+        if (Info.Grade == TEXT("Common")) GradeColor = FLinearColor(.1f,.7f,.2f,1.f);
+        else if (Info.Grade == TEXT("Rare")) GradeColor = FLinearColor(.1f,.4f,.9f,1.f);
+        else if (Info.Grade == TEXT("Unique")) GradeColor = FLinearColor(.8f,.1f,.1f,1.f);
+        else if (Info.Grade == TEXT("Epic")) GradeColor = FLinearColor(.9f,.7f,.1f,1.f);
+        if (UTextBlock* Grade = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_Grade"))))
+        {
+            Grade->SetText(FText::FromString(Info.Grade));
+            Grade->SetColorAndOpacity(GradeColor);
+        }
+        if (UBorder* Frame = Cast<UBorder>(Widget->GetWidgetFromName(TEXT("CardBorderGoldFrame")))) Frame->SetBrushColor(GradeColor);
+        if (UBorder* Badge = Cast<UBorder>(Widget->GetWidgetFromName(TEXT("UPBadge")))) Badge->SetBrushColor(GradeColor * FLinearColor(.22f,.22f,.22f,1.f));
+        if (UTextBlock* Type = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_AttackType")))) Type->SetText(FText::FromString(Info.AttackType));
+        UTextBlock* Previous = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_Info")));
+        UVerticalBox* List = Cast<UVerticalBox>(Widget->GetWidgetFromName(TEXT("CardDetailsList")));
+        if (!Previous || !List) return;
+        if (Previous->GetText().ToString() == Info.Description && List->GetChildrenCount() > 0) return;
+        Previous->SetText(FText::FromString(Info.Description));
+        Previous->SetVisibility(ESlateVisibility::Collapsed);
+        List->ClearChildren();
+        auto Text = [Widget](const FString& Value, int32 Size, const FLinearColor& Color, const TCHAR* Prefix)
+        {
+            UTextBlock* Result = Widget->WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), MakeUniqueObjectName(Widget->WidgetTree, UTextBlock::StaticClass(), Prefix));
+            Result->SetText(FText::FromString(Value));
+            FSlateFontInfo Font = Result->GetFont(); Font.Size = Size; Result->SetFont(Font);
+            Result->SetColorAndOpacity(Color); Result->SetAutoWrapText(true);
+            return Result;
+        };
+        TArray<FString> Sections; Info.Description.TrimStartAndEnd().ParseIntoArray(Sections, TEXT("\n\n"), true);
+        for (const FString& Section : Sections)
+        {
+            TArray<FString> Lines; Section.ParseIntoArrayLines(Lines, true);
+            if (Lines.IsEmpty()) continue;
+            UBorder* Panel = Widget->WidgetTree->ConstructWidget<UBorder>();
+            Panel->SetBrushColor(PanelColor); Panel->SetPadding(FMargin(12.f,10.f));
+            List->AddChildToVerticalBox(Panel)->SetPadding(FMargin(0,0,0,10));
+            UVerticalBox* Content = Widget->WidgetTree->ConstructWidget<UVerticalBox>(); Panel->SetContent(Content);
+            Content->AddChildToVerticalBox(Text(Lines[0],14,GoldColor,TEXT("SectionName")))->SetPadding(FMargin(0,0,0,8));
+            for (int32 LineIndex=1; LineIndex<Lines.Num(); ++LineIndex)
+            {
+                FString Label,Value;
+                if (Lines[LineIndex].Split(TEXT(":"),&Label,&Value))
+                {
+                    UHorizontalBox* Row = Widget->WidgetTree->ConstructWidget<UHorizontalBox>();
+                    Content->AddChildToVerticalBox(Row)->SetPadding(FMargin(0,3));
+                    auto* LabelSlot = Row->AddChildToHorizontalBox(Text(Label.TrimStartAndEnd(),14,MutedTextColor,TEXT("LBL_Detail")));
+                    LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+                    UTextBlock* Number = Text(Value.TrimStartAndEnd(),14,PrimaryTextColor,TEXT("DetailValue"));
+                    Number->SetJustification(ETextJustify::Right);
+                    Number->SetAutoWrapText(false);
+                    Row->AddChildToHorizontalBox(Number)->SetPadding(FMargin(12,0,0,0));
+                }
+                else Content->AddChildToVerticalBox(Text(Lines[LineIndex],14,PrimaryTextColor,TEXT("DetailBody")))->SetPadding(FMargin(0,3));
+            }
+        }
+        if (UScrollBox* Scroll = Cast<UScrollBox>(Widget->GetWidgetFromName(TEXT("CardDetailsScroll")))) Scroll->ScrollToStart();
+    }
+
 	void ApplyRecursive(UUserWidget* Widget, TSet<UUserWidget*>& Visited)
 	{
 		if (!IsValid(Widget) || Visited.Contains(Widget) || !Widget->WidgetTree)
@@ -120,22 +191,6 @@ namespace
 			return;
 		}
 		Visited.Add(Widget);
-        if (Widget->GetClass()->GetName().Contains(TEXT("GachaCard")))
-        {
-            AGachaManager* Manager = Cast<AGachaManager>(UGameplayStatics::GetActorOfClass(Widget, AGachaManager::StaticClass()));
-            FIntProperty* IndexProperty = FindFProperty<FIntProperty>(Widget->GetClass(), TEXT("CardIndex"));
-            if (Manager && IndexProperty)
-            {
-                const TArray<FGachaCardInfo> Infos = Manager->BuildCardInfos(Manager->CurrentRollResult);
-                const int32 Index = IndexProperty->GetPropertyValue_InContainer(Widget);
-                if (Infos.IsValidIndex(Index))
-                {
-                    if (UTextBlock* Info = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_Info")))) Info->SetText(FText::FromString(Infos[Index].Description));
-                    if (UTextBlock* Type = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_AttackType")))) Type->SetText(FText::FromString(Infos[Index].AttackType));
-                }
-            }
-        }
-
         if (Widget->GetClass()->GetName().Contains(TEXT("SynergyBar")))
         {
             ASynergyManager* Manager = Cast<ASynergyManager>(UGameplayStatics::GetActorOfClass(Widget, ASynergyManager::StaticClass()));
@@ -272,6 +327,7 @@ namespace
 				ApplyRecursive(NestedWidget, Visited);
 			}
 		}
+        if (Widget->GetClass()->GetName().Contains(TEXT("GachaCard"))) ApplyGachaCard(Widget);
 	}
 }
 

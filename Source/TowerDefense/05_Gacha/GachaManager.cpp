@@ -1,4 +1,5 @@
 ﻿#include "GachaManager.h"
+#include "FantasyUITheme.h"
 #include "UIEffectFormatting.h"
 #include "BaseTower.h"
 #include "TowerSlot.h"
@@ -62,6 +63,7 @@ void AGachaManager::OpenGacha(ATowerSlot* Slot)
 		if (SavedCardInfos.Num() == 3)
 		{
 			GachaWidget->UpdateGachaUI(SavedCardInfos);
+            FFantasyUITheme::ApplyToWidgetTree(GachaWidget);
 		}
 		else
 		{
@@ -221,6 +223,7 @@ void AGachaManager::Roll()
 	if (GachaWidget)
 	{
 		GachaWidget->UpdateGachaUI(BuildCardInfos(CurrentRollResult));
+        FFantasyUITheme::ApplyToWidgetTree(GachaWidget);
 	}
 	CurrentSlot->SavedRollResult = CurrentRollResult;
 }
@@ -375,18 +378,19 @@ TArray<FGachaCardInfo> AGachaManager::BuildCardInfos(const TArray<TSubclassOf<AA
 						CardInfo.Icon = Row->Icon;
 						CardInfo.SynergyTags = Row->SynergyTags;
                         CardInfo.AttackType = Row->TowerType;
+                        CardInfo.Description = TEXT("기본 능력치\n");
                         for (const FBuffEffect& Stat : Row->Stats)
-                            CardInfo.Description += FString::Printf(TEXT("%s %.2f\n"), *TowerUI::TagName(Stat.StatTag), Stat.Value);
+                            CardInfo.Description += FString::Printf(TEXT("%s: %s\n"), *TowerUI::TagName(Stat.StatTag), *FText::AsNumber(Stat.Value).ToString());
                         if (Row->BuffSetting.BuffType != EBuffComponentType::None)
                         {
                             const FBuffConfig& Buff = Row->BuffSetting;
                             if(Buff.BuffType==EBuffComponentType::Active)
-                                CardInfo.Description += FString::Printf(TEXT("액티브 · 범위 %.0f\n지속 %.1f초 · 재사용 %.1f초\n"),Buff.BuffRadius,Buff.BuffDuration,Buff.BuffCooldown);
-                            else CardInfo.Description += FString::Printf(TEXT("지속 효과 · 범위 %.0f\n주기 %.1f초 · 범위 내 유지\n"),Buff.BuffRadius,Buff.BuffInterval);
+                                CardInfo.Description += FString::Printf(TEXT("\n액티브 효과\n효과 범위: %.0f\n지속 시간: %.1f초\n재사용 대기: %.1f초\n"),Buff.BuffRadius,Buff.BuffDuration,Buff.BuffCooldown);
+                            else CardInfo.Description += FString::Printf(TEXT("\n지속 효과\n효과 범위: %.0f\n적용 주기: %.1f초\n범위 내에서 효과 유지\n"),Buff.BuffRadius,Buff.BuffInterval);
                             for (const FBuffEffect& Effect : Buff.BuffEffects)
-                                CardInfo.Description += FString::Printf(TEXT("%s %+.2f%s\n"), *TowerUI::TagName(Effect.StatTag), Effect.ValueType == EBuffValueType::Percent ? Effect.Value*100.f : Effect.Value, Effect.ValueType == EBuffValueType::Percent ? TEXT("%") : TEXT(""));
+                                CardInfo.Description += FString::Printf(TEXT("%s: %+.2f%s\n"), *TowerUI::TagName(Effect.StatTag), Effect.ValueType == EBuffValueType::Percent ? Effect.Value*100.f : Effect.Value, Effect.ValueType == EBuffValueType::Percent ? TEXT("%") : TEXT(""));
                         }
-                        if (!Row->Abilities.IsEmpty()) CardInfo.Description += TowerUI::TagList(Row->Abilities);
+                        if (!Row->Abilities.IsEmpty()) CardInfo.Description += TEXT("\n타워 특성\n") + TowerUI::TagList(Row->Abilities);
 
 					}
 				}
@@ -398,7 +402,8 @@ TArray<FGachaCardInfo> AGachaManager::BuildCardInfos(const TArray<TSubclassOf<AA
 			if (!UpgradeCDO->UpgradeName.IsEmpty()) CardInfo.Name = UpgradeCDO->UpgradeName;
 			if (!UpgradeCDO->Grade.IsEmpty()) CardInfo.Grade = UpgradeCDO->Grade;
 			CardInfo.Icon = UpgradeCDO->UpgradeIcon;
-			CardInfo.Description = UpgradeCDO->UpgradeInfo;
+			CardInfo.Description = TEXT("강화 효과\n") + UpgradeCDO->UpgradeInfo;
+            CardInfo.AttackType = TEXT("강화 카드");
 			CardInfo.bIsUpgrade = true;
 		}
 		else
