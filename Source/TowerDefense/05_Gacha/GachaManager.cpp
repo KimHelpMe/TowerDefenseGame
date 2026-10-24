@@ -22,7 +22,6 @@ AGachaManager::AGachaManager()
 	RarePoolRate = 20.f;
 	UniquePoolRate = 5.f;
 	UpgradePoolRate = 35.f;
-	TotalPoolRate = 100.f;
 
 
 	CurrentSlot = nullptr;

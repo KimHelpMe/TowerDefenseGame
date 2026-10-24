@@ -31,9 +31,6 @@ public:
 	int ReloadCount;
 	
 	UPROPERTY(EditAnywhere)
-	bool bIsUIOpen;
-
-	UPROPERTY(EditAnywhere)
 	bool bCanAbandon;
 
 	// 스폰된 타워 인스턴스를 참조해야함. 그래서 포인터.
@@ -60,12 +57,6 @@ public:
 
 	UFUNCTION()
 	void OnClickedSelect(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed);
-
-	UFUNCTION()
-	void CompleteTower();
-
-	UFUNCTION()
-	void GiveUpGacha();
 
 	// 뽑기 결과·리롤 횟수를 슬롯 클래스 기본값으로 되돌림(타워 선택 후, 슬롯이 비워질 때).
 	UFUNCTION()

@@ -15,7 +15,6 @@ ATowerSlot::ATowerSlot()
 
 	bIsOccupied = false;
 	ReloadCount = 2;
-	bIsUIOpen = false;
 	bCanAbandon = false;
 	InstalledTower = nullptr;
 
@@ -46,14 +45,6 @@ void ATowerSlot::OnClickedSelect(UPrimitiveComponent* TouchedComponent, FKey But
         return;
     }
 	GachaManager->OpenGacha(this);
-}
-
-void ATowerSlot::CompleteTower()
-{
-}
-
-void ATowerSlot::GiveUpGacha()
-{
 }
 
 void ATowerSlot::ResetGachaState()

@@ -55,19 +55,6 @@ public:
 	UPROPERTY(EditAnywhere)
 	float ZoomSpeed;
 
-	// Retain serialized settings used by existing camera Blueprints.
-	UPROPERTY(EditAnywhere)
-	float MinZoom;
-
-	UPROPERTY(EditAnywhere)
-	float MaxZoom;
-
-	UPROPERTY(EditAnywhere)
-	float MinPitch;
-
-	UPROPERTY(EditAnywhere)
-	float MaxPitch;
-
 	UPROPERTY(VisibleAnywhere)
 	float TargetArmLength;
 
