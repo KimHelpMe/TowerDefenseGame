@@ -29,6 +29,9 @@ public:
 
 	virtual void ApplyBuff() override;
 
+	// Restarts the apply timer with the current BuffInterval (call after data changes it).
+	void RestartBuffTimer();
+
 protected:
 
 	virtual void BeginPlay() override;
