@@ -1,4 +1,4 @@
-﻿#include "BaseTower.h"
+#include "BaseTower.h"
 #include "TowerSlot.h"
 #include "TowerStatComponent.h"
 #include "TowerInfoWidget.h"
@@ -210,9 +210,16 @@ void ABaseTower::OnTowerClicked(UPrimitiveComponent* TouchedComponent, FKey Butt
 	}
 
 	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
-	if (!TowerStat || !TowerInfoWidgetClass) return;
+	if (!TowerStat) return;
 
-	TowerInfoWidget = CreateWidget<UTowerInfoWidget>(GetWorld(), TowerInfoWidgetClass);
+	TSubclassOf<UTowerInfoWidget> InfoWidgetClass = TowerInfoWidgetClass;
+	if (!InfoWidgetClass)
+	{
+		InfoWidgetClass = LoadClass<UTowerInfoWidget>(nullptr, TEXT("/Game/03_UI/WBP_TowerInfo.WBP_TowerInfo_C"));
+	}
+	if (!InfoWidgetClass) return;
+
+	TowerInfoWidget = CreateWidget<UTowerInfoWidget>(GetWorld(), InfoWidgetClass);
 	if (!TowerInfoWidget) return;
 
 	TowerInfoWidget->InitWidget(TowerStat);

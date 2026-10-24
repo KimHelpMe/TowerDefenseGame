@@ -1,4 +1,4 @@
-﻿#include "FantasyUITheme.h"
+#include "FantasyUITheme.h"
 #include "UIEffectFormatting.h"
 #include "SynergyManager.h"
 #include "GachaManager.h"
@@ -42,6 +42,9 @@ namespace
 		Widget->SetCursor(EMouseCursor::None);
 		const FString Name = Widget->GetName();
 		const FString LowerName = Name.ToLower();
+
+        // Tower detail cards own their palette and spacing.
+        if (Name.StartsWith(TEXT("TD_"))) return;
 
 		if (UBorder* Border = Cast<UBorder>(Widget))
 		{

@@ -1,4 +1,4 @@
-﻿#include "TowerInfoWidget.h"
+#include "TowerInfoWidget.h"
 #include "TowerRangeDecalComponent.h"
 #include "UIEffectFormatting.h"
 
@@ -6,13 +6,158 @@
 #include "TowerDefenseGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerStatComponent.h"
-#include "Components/TextBlock.h"
+#include "Components/Border.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
+#include "Components/PanelWidget.h"
+#include "Components/ScrollBox.h"
+#include "Components/SizeBox.h"
+#include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
+#include "Components/Widget.h"
+#include "Blueprint/WidgetTree.h"
+
+namespace
+{
+	const FLinearColor DetailPanelColor(0.035f, 0.048f, 0.075f, 0.98f);
+	const FLinearColor DetailRowColor(0.065f, 0.080f, 0.115f, 0.96f);
+	const FLinearColor DetailGoldColor(0.91f, 0.72f, 0.36f, 1.f);
+	const FLinearColor DetailTextColor(0.89f, 0.91f, 0.96f, 1.f);
+	const FLinearColor DetailMutedColor(0.60f, 0.68f, 0.79f, 1.f);
+	const FLinearColor DetailCyanColor(0.39f, 0.79f, 0.88f, 1.f);
+	const FLinearColor DetailVioletColor(0.70f, 0.55f, 0.95f, 1.f);
+
+	FName MakeWidgetName(UUserWidget* Owner, UClass* WidgetClass, const TCHAR* Prefix)
+	{
+		return MakeUniqueObjectName(Owner->WidgetTree, WidgetClass, FName(Prefix));
+	}
+
+	UTextBlock* MakeDetailText(UUserWidget* Owner, const FString& Value, int32 FontSize,
+		const FLinearColor& Color, const TCHAR* Prefix, bool bBold = false)
+	{
+		UTextBlock* Text = Owner->WidgetTree->ConstructWidget<UTextBlock>(
+			UTextBlock::StaticClass(), MakeWidgetName(Owner, UTextBlock::StaticClass(), Prefix));
+		Text->SetText(FText::FromString(Value));
+		FSlateFontInfo Font = Text->GetFont();
+		Font.Size = FontSize;
+		if (bBold) Font.TypefaceFontName = FName(TEXT("SemiBold"));
+		Text->SetFont(Font);
+		Text->SetColorAndOpacity(Color);
+		Text->SetAutoWrapText(true);
+		return Text;
+	}
+
+	void AddTagPills(UUserWidget* Owner, UVerticalBox* Parent, const FString& Line)
+	{
+		UHorizontalBox* Tags = Owner->WidgetTree->ConstructWidget<UHorizontalBox>(
+			UHorizontalBox::StaticClass(), MakeWidgetName(Owner, UHorizontalBox::StaticClass(), TEXT("TD_TagRow")));
+		TArray<FString> Parts;
+		Line.ParseIntoArray(Parts, TEXT("·"), true);
+		for (FString Part : Parts)
+		{
+			Part.TrimStartAndEndInline();
+			if (Part.IsEmpty()) continue;
+
+			UBorder* Pill = Owner->WidgetTree->ConstructWidget<UBorder>(
+				UBorder::StaticClass(), MakeWidgetName(Owner, UBorder::StaticClass(), TEXT("TD_TagPill")));
+			Pill->SetBrushColor(FLinearColor(0.12f, 0.17f, 0.25f, 1.f));
+			Pill->SetPadding(FMargin(9.f, 5.f));
+			Pill->SetContent(MakeDetailText(Owner, Part, 12, DetailCyanColor, TEXT("TD_TagText")));
+			Tags->AddChildToHorizontalBox(Pill)->SetPadding(FMargin(0.f, 2.f, 6.f, 2.f));
+		}
+		Parent->AddChildToVerticalBox(Tags)->SetPadding(FMargin(0.f, 2.f));
+	}
+
+	void AddLabelValueRow(UUserWidget* Owner, UVerticalBox* Parent, const FString& Label,
+		const FString& Value, bool bEmphasize = false)
+	{
+		UHorizontalBox* Row = Owner->WidgetTree->ConstructWidget<UHorizontalBox>(
+			UHorizontalBox::StaticClass(), MakeWidgetName(Owner, UHorizontalBox::StaticClass(), TEXT("TD_DetailRow")));
+		Row->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		UTextBlock* LabelText = MakeDetailText(Owner, Label, 13, DetailMutedColor, TEXT("TD_DetailLabel"));
+		Row->AddChildToHorizontalBox(LabelText)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+
+		UTextBlock* ValueText = MakeDetailText(Owner, Value, 13,
+			bEmphasize ? DetailGoldColor : DetailTextColor, TEXT("TD_DetailValue"), bEmphasize);
+		ValueText->SetJustification(ETextJustify::Right);
+		ValueText->SetAutoWrapText(false);
+		Row->AddChildToHorizontalBox(ValueText)->SetPadding(FMargin(10.f, 0.f, 0.f, 0.f));
+		Parent->AddChildToVerticalBox(Row)->SetPadding(FMargin(0.f, 3.f));
+	}
+
+	void AddEffectRow(UUserWidget* Owner, UVerticalBox* Parent, const FString& Line, const FLinearColor& Accent)
+	{
+		FString EffectText;
+		FString Source;
+		if (!Line.Split(TEXT("·"), &EffectText, &Source, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
+		{
+			Parent->AddChildToVerticalBox(MakeDetailText(Owner, Line, 13, DetailTextColor, TEXT("TD_EffectText")))
+				->SetPadding(FMargin(0.f, 3.f));
+			return;
+		}
+
+		UHorizontalBox* Row = Owner->WidgetTree->ConstructWidget<UHorizontalBox>(
+			UHorizontalBox::StaticClass(), MakeWidgetName(Owner, UHorizontalBox::StaticClass(), TEXT("TD_EffectRow")));
+		UBorder* AccentBar = Owner->WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), MakeWidgetName(Owner, UBorder::StaticClass(), TEXT("TD_EffectAccent")));
+		AccentBar->SetBrushColor(Accent);
+		USizeBox* AccentSize = Owner->WidgetTree->ConstructWidget<USizeBox>(
+			USizeBox::StaticClass(), MakeWidgetName(Owner, USizeBox::StaticClass(), TEXT("TD_EffectAccentSize")));
+		AccentSize->SetWidthOverride(3.f);
+		AccentSize->SetHeightOverride(22.f);
+		AccentSize->SetContent(AccentBar);
+		Row->AddChildToHorizontalBox(AccentSize)->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f));
+
+		EffectText.TrimStartAndEndInline();
+		Source.TrimStartAndEndInline();
+		Row->AddChildToHorizontalBox(MakeDetailText(Owner, EffectText, 13, DetailTextColor, TEXT("TD_EffectValue")))
+			->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+
+		UBorder* Badge = Owner->WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), MakeWidgetName(Owner, UBorder::StaticClass(), TEXT("TD_EffectBadge")));
+		Badge->SetBrushColor(Accent * FLinearColor(.28f, .28f, .28f, 1.f));
+		Badge->SetPadding(FMargin(7.f, 3.f));
+		Badge->SetContent(MakeDetailText(Owner, Source, 11, Accent, TEXT("TD_EffectSource"), true));
+		Row->AddChildToHorizontalBox(Badge)->SetPadding(FMargin(8.f, 0.f, 0.f, 0.f));
+
+		UBorder* RowCard = Owner->WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), MakeWidgetName(Owner, UBorder::StaticClass(), TEXT("TD_EffectCard")));
+		RowCard->SetBrushColor(DetailRowColor);
+		RowCard->SetPadding(FMargin(9.f, 7.f));
+		RowCard->SetContent(Row);
+		Parent->AddChildToVerticalBox(RowCard)->SetPadding(FMargin(0.f, 3.f));
+	}
+
+	void WrapStatRow(UUserWidget* Owner, const TCHAR* WidgetName)
+	{
+		UWidget* Row = Owner->GetWidgetFromName(WidgetName);
+		UPanelWidget* Parent = Row ? Row->GetParent() : nullptr;
+		if (!Row || !Parent) return;
+
+		if (UBorder* ExistingCard = Cast<UBorder>(Parent))
+		{
+			if (ExistingCard->GetName().StartsWith(TEXT("TD_"))) return;
+		}
+
+		const int32 Index = Parent->GetChildIndex(Row);
+		UPanelSlot* SlotTemplate = Row->Slot;
+		if (Index == INDEX_NONE || !Parent->RemoveChildAt(Index)) return;
+
+		UBorder* Card = Owner->WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), MakeWidgetName(Owner, UBorder::StaticClass(), TEXT("TD_StatCard")));
+		Card->SetBrushColor(DetailRowColor);
+		Card->SetPadding(FMargin(10.f, 8.f));
+		Card->SetContent(Row);
+		Parent->InsertChildAt(Index, Card, SlotTemplate);
+	}
+}
 
 void UTowerInfoWidget::LevelUp()
 {
 	if (!TowerStat) return;
-    TowerStat->LevelUp();
+	TowerStat->LevelUp();
 }
 
 void UTowerInfoWidget::CloseWidget()
@@ -33,70 +178,256 @@ void UTowerInfoWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	FFantasyUITheme::ApplyToWidgetTree(this);
+	StyleStatCards();
+	EnsureDetailsPanel();
 }
 
+void UTowerInfoWidget::StyleStatCards()
+{
+	WrapStatRow(this, TEXT("StatRow_ATK"));
+	WrapStatRow(this, TEXT("StatRow_Range"));
+	WrapStatRow(this, TEXT("StatRow_ATK_SPEED"));
+	WrapStatRow(this, TEXT("StatRow_Type"));
+}
+
+void UTowerInfoWidget::EnsureDetailsPanel()
+{
+	if (IsValid(DetailedEffectsPanel)) return;
+
+	UWidget* LegacyText = GetWidgetFromName(TEXT("DetailedEffects"));
+	UPanelWidget* Parent = LegacyText ? LegacyText->GetParent() : nullptr;
+	if (!Parent || !WidgetTree) return;
+
+	const int32 Index = Parent->GetChildIndex(LegacyText);
+	UPanelSlot* SlotTemplate = LegacyText->Slot;
+	if (Index == INDEX_NONE || !Parent->RemoveChildAt(Index)) return;
+
+	DetailedEffectsPanel = WidgetTree->ConstructWidget<UVerticalBox>(
+		UVerticalBox::StaticClass(), MakeWidgetName(this, UVerticalBox::StaticClass(), TEXT("TD_DetailsPanel")));
+	DetailedEffectsPanel->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	Parent->InsertChildAt(Index, DetailedEffectsPanel, SlotTemplate);
+}
+
+void UTowerInfoWidget::BuildDetailsPanel(const FString& Details)
+{
+	EnsureDetailsPanel();
+	if (!DetailedEffectsPanel || LastRenderedDetails == Details) return;
+
+	DetailedEffectsPanel->ClearChildren();
+	TArray<FString> Sections;
+	Details.ParseIntoArray(Sections, TEXT("\n\n"), true);
+
+	for (FString SectionText : Sections)
+	{
+		SectionText.TrimStartAndEndInline();
+		TArray<FString> Lines;
+		SectionText.ParseIntoArrayLines(Lines, true);
+		if (Lines.IsEmpty()) continue;
+
+		const FString Heading = Lines[0].TrimStartAndEnd();
+		const bool bIsSynergy = Heading.Contains(TEXT("시너지"));
+		const bool bIsUpgrade = Heading.StartsWith(TEXT("다음 강화")) || Heading == TEXT("최대 레벨");
+		const FLinearColor Accent = bIsSynergy ? DetailVioletColor : (bIsUpgrade ? DetailGoldColor : DetailCyanColor);
+
+		UBorder* SectionCard = WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), MakeWidgetName(this, UBorder::StaticClass(), TEXT("TD_DetailSection")));
+		SectionCard->SetBrushColor(bIsUpgrade ? FLinearColor(.12f, .095f, .045f, .98f) : DetailPanelColor);
+		SectionCard->SetPadding(FMargin(11.f, bIsUpgrade ? 9.f : 10.f));
+		DetailedEffectsPanel->AddChildToVerticalBox(SectionCard)->SetPadding(FMargin(0.f, 0.f, 0.f, 7.f));
+
+		if (bIsUpgrade)
+		{
+			UTextBlock* UpgradeText = MakeDetailText(this, Heading, 13, DetailGoldColor, TEXT("TD_UpgradeText"), true);
+			UpgradeText->SetJustification(ETextJustify::Center);
+			SectionCard->SetContent(UpgradeText);
+			continue;
+		}
+
+		UVerticalBox* Content = WidgetTree->ConstructWidget<UVerticalBox>(
+			UVerticalBox::StaticClass(), MakeWidgetName(this, UVerticalBox::StaticClass(), TEXT("TD_SectionContent")));
+		SectionCard->SetContent(Content);
+
+		UHorizontalBox* TitleRow = WidgetTree->ConstructWidget<UHorizontalBox>(
+			UHorizontalBox::StaticClass(), MakeWidgetName(this, UHorizontalBox::StaticClass(), TEXT("TD_SectionTitleRow")));
+		USizeBox* MarkerSize = WidgetTree->ConstructWidget<USizeBox>(
+			USizeBox::StaticClass(), MakeWidgetName(this, USizeBox::StaticClass(), TEXT("TD_SectionMarkerSize")));
+		MarkerSize->SetWidthOverride(3.f);
+		MarkerSize->SetHeightOverride(17.f);
+		UBorder* Marker = WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), MakeWidgetName(this, UBorder::StaticClass(), TEXT("TD_SectionMarker")));
+		Marker->SetBrushColor(Accent);
+		MarkerSize->SetContent(Marker);
+		TitleRow->AddChildToHorizontalBox(MarkerSize)->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f));
+		TitleRow->AddChildToHorizontalBox(MakeDetailText(this, Heading, 13, DetailGoldColor, TEXT("TD_SectionTitle"), true));
+		Content->AddChildToVerticalBox(TitleRow)->SetPadding(FMargin(0.f, 0.f, 0.f, 7.f));
+
+		for (int32 LineIndex = 1; LineIndex < Lines.Num(); ++LineIndex)
+		{
+			FString Line = Lines[LineIndex].TrimStartAndEnd();
+			if (Line.IsEmpty()) continue;
+
+			if (Line.Contains(TEXT("적용 중인 효과 없음")))
+			{
+				Content->AddChildToVerticalBox(MakeDetailText(this, Line, 12, DetailMutedColor, TEXT("TD_EmptyEffect")))
+					->SetPadding(FMargin(0.f, 2.f));
+				continue;
+			}
+
+			if (Heading.Contains(TEXT("적용 중인 효과")) && Line.Contains(TEXT("·")))
+			{
+				AddEffectRow(this, Content, Line, Line.Contains(TEXT("시너지")) ? DetailVioletColor : DetailCyanColor);
+				continue;
+			}
+
+			FString Label;
+			FString Value;
+			if (Line.Split(TEXT(":"), &Label, &Value))
+			{
+				AddLabelValueRow(this, Content, Label.TrimStartAndEnd(), Value.TrimStartAndEnd(), true);
+				continue;
+			}
+
+			if (Heading.Contains(TEXT("기본 대비 보너스")) && Line.Split(TEXT(" "), &Label, &Value))
+			{
+				AddLabelValueRow(this, Content, Label.TrimStartAndEnd(), Value.TrimStartAndEnd(), true);
+				continue;
+			}
+
+			const bool bTagLine = Line.Contains(TEXT("·")) &&
+				!Line.Contains(TEXT("초")) && !Line.Contains(TEXT("유지"));
+			if (bTagLine)
+			{
+				AddTagPills(this, Content, Line);
+				continue;
+			}
+
+			Content->AddChildToVerticalBox(MakeDetailText(this, Line, 12, DetailTextColor, TEXT("TD_DetailBody")))
+				->SetPadding(FMargin(0.f, 2.f));
+		}
+	}
+
+	LastRenderedDetails = Details;
+}
 
 void UTowerInfoWidget::NativeTick(const FGeometry& Geometry, float DeltaTime)
 {
-    Super::NativeTick(Geometry, DeltaTime);
-    if (!IsValid(TowerStat)) return;
-    auto SetText=[this](const TCHAR* Name,const FString& Value) { if (UTextBlock* Text=Cast<UTextBlock>(GetWidgetFromName(Name))) { const FText New=FText::FromString(Value); if(!Text->GetText().EqualTo(New)) Text->SetText(New); } };
-    auto EffectLine=[](const FBuffEffect& E) { return FString::Printf(TEXT("%s %+.2f%s"),*TowerUI::TagName(E.StatTag), E.ValueType==EBuffValueType::Percent ? E.Value*100.f:E.Value,E.ValueType==EBuffValueType::Percent?TEXT("%"):TEXT("")); };
-    SetText(TEXT("TEXT_TowerName"),TowerStat->TowerName);
-    SetText(TEXT("TEXT_TowerMeta"),TowerStat->Grade+TEXT(" · ")+TowerStat->TowerType);
-    SetText(TEXT("TEXT_Level"),FString::Printf(TEXT("%d / %d"),TowerStat->CurrentLevel,TowerStat->MaxLevel));
-    if(UImage* Icon=Cast<UImage>(GetWidgetFromName(TEXT("TowerIcon")))) Icon->SetBrushFromTexture(TowerStat->TowerIcon);
-    const FName Key(*FString::Printf(TEXT("%s_Lv%d"),*TowerStat->TowerRowName.ToString(),TowerStat->CurrentLevel));
-    const FTowerDataRow* Row=TowerStat->TowerDataTable?TowerStat->TowerDataTable->FindRow<FTowerDataRow>(Key,TEXT("Tower UI")):nullptr;
-    const bool bSupport=Row && Row->BuffSetting.BuffType!=EBuffComponentType::None;
-    FString Info;
-    if(bSupport)
-    {
-        const FBuffConfig& B=Row->BuffSetting;
-        SetText(TEXT("LBL_ATK"),B.BuffEffects.IsEmpty()?TEXT("버프 효과"):TowerUI::TagName(B.BuffEffects[0].StatTag));
-        SetText(TEXT("TEXT_ATK"),B.BuffEffects.IsEmpty()?TEXT("없음"):FString::Printf(TEXT("%+.2f%s"),B.BuffEffects[0].ValueType==EBuffValueType::Percent?B.BuffEffects[0].Value*100.f:B.BuffEffects[0].Value,B.BuffEffects[0].ValueType==EBuffValueType::Percent?TEXT("%"):TEXT("")));
-        SetText(TEXT("LBL_ATK_Speed"),TEXT("지속시간"));SetText(TEXT("TEXT_ATK_Speed"),B.BuffType==EBuffComponentType::Passive?TEXT("범위 내 유지"):FString::Printf(TEXT("%.1f초"),B.BuffDuration));
-        SetText(TEXT("LBL_Range"),TEXT("버프 범위"));SetText(TEXT("TEXT_Range"),FString::Printf(TEXT("%.0f"),IsValid(OwnerTower)?OwnerTower->GetRangeRadius():B.BuffRadius));
-        SetText(TEXT("LBL_Type"),TEXT("적용 대상"));SetText(TEXT("TEXT_Type"),B.BuffTarget==EBuffTarget::AllyTower?TEXT("아군 타워"):TEXT("적"));
-        Info=B.BuffType==EBuffComponentType::Active?TEXT("액티브 효과 · 자동 발동\n"):TEXT("지속 효과\n");
-        for(const FBuffEffect& E:B.BuffEffects) Info+=EffectLine(E)+TEXT("\n");
-        if(B.BuffType==EBuffComponentType::Active) Info+=FString::Printf(TEXT("지속 %.1f초 · 재사용 %.1f초\n"),B.BuffDuration,B.BuffCooldown);
-        else Info+=FString::Printf(TEXT("적용 주기 %.1f초 · 범위 내 유지\n"),B.BuffInterval);
-    }
-    else
-    {
-        SetText(TEXT("LBL_ATK"),TEXT("공격력"));SetText(TEXT("TEXT_ATK"),FString::Printf(TEXT("%.0f"),TowerStat->GetStat(UStatComponent::GetTag(TEXT("Stat.AttackDamage")))));
-        float SpeedBonus=0.f;
-        if(const ATowerDefenseGameMode* Mode=Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(this)))
-            for(const FBuffEffect& Effect:Mode->InGameUpgrades)
-                if(Effect.StatTag==UStatComponent::GetTag(TEXT("Upgrade.AttackSpeed"))) SpeedBonus+=Effect.Value;
-        const float Interval=FMath::Max(0.01f,TowerStat->GetStat(UStatComponent::GetTag(TEXT("Stat.AttackSpeed")))*(1.f-SpeedBonus));
-        SetText(TEXT("LBL_ATK_Speed"),TEXT("초당 공격 횟수"));SetText(TEXT("TEXT_ATK_Speed"),FString::Printf(TEXT("%.2f /s"),1.f/Interval));
-        SetText(TEXT("LBL_Range"),TEXT("공격 사거리"));SetText(TEXT("TEXT_Range"),FString::Printf(TEXT("%.0f"),IsValid(OwnerTower)?OwnerTower->GetRangeRadius():0.f));
-        SetText(TEXT("LBL_Type"),TEXT("타워 유형"));SetText(TEXT("TEXT_Type"),TowerStat->TowerType);
-        Info=TEXT("공격 효과\n");
-        if(!TowerStat->TowerInfo.IsEmpty() && TowerStat->TowerInfo!=TEXT("None")) Info+=TowerStat->TowerInfo+TEXT("\n");
-        if(!TowerStat->Elements.IsEmpty()) Info+=TowerUI::TagList(TowerStat->Elements)+TEXT("\n");
-        if(!TowerStat->AttackTypes.IsEmpty()) Info+=TowerUI::TagList(TowerStat->AttackTypes)+TEXT("\n");
-        if(!TowerStat->Abilities.IsEmpty()) Info+=TowerUI::TagList(TowerStat->Abilities)+TEXT("\n");
-    }
-    Info+=TEXT("\n적용 중인 효과 · 시너지 / 버프\n");
-    if(TowerStat->ActiveBuffs.IsEmpty()) Info+=TEXT("적용 중인 효과 없음\n");
-    for(const FBuffEffect& E:TowerStat->ActiveBuffs) Info+=EffectLine(E)+TEXT(" · ")+(E.SourceKey.ToString().StartsWith(TEXT("Synergy_")) ? TEXT("시너지") : TEXT("타워 효과"))+TEXT("\n");
-    FString Bonuses;
-    for(const auto& Stat:TowerStat->CurrentStats)
-    {
-        const float Base=TowerStat->GetBaseStat(Stat.Key),Diff=Stat.Value-Base;
-        if(!FMath::IsNearlyZero(Diff)) Bonuses+=FString::Printf(TEXT("%s %.2f (%+.2f)\n"),*TowerUI::TagName(Stat.Key),Stat.Value,Diff);
-    }
-    if(!Bonuses.IsEmpty()) Info+=TEXT("\n기본 대비 보너스\n")+Bonuses;
-    Info+=TowerStat->CurrentLevel<TowerStat->MaxLevel?FString::Printf(TEXT("\n다음 강화 %.0f G"),TowerStat->GetNextLevelGoldCost()):TEXT("\n최대 레벨");
-    SetText(TEXT("DetailedEffects"),Info);
-    SetText(TEXT("TEXT_UpgradeCost"), TowerStat->CurrentLevel<TowerStat->MaxLevel ? FString::Printf(TEXT("강화 · %.0f G"),TowerStat->GetNextLevelGoldCost()) : TEXT("최대 레벨"));
-    if(UWidget* Skill=GetWidgetFromName(TEXT("Border_245"))) Skill->SetVisibility(IsValid(TowerMana)?ESlateVisibility::Visible:ESlateVisibility::Collapsed);
-    if(IsValid(TowerMana))
-    {
-        SetText(TEXT("TextBlock_916"),TEXT("스킬 사용"));
-        SetText(TEXT("Text_AutoFire"),TowerMana->bAutoFire?TEXT("자동 ON"):TEXT("자동 OFF"));
-    }
+	Super::NativeTick(Geometry, DeltaTime);
+	if (!IsValid(TowerStat)) return;
+
+	auto SetText = [this](const TCHAR* Name, const FString& Value)
+	{
+		if (UTextBlock* Text = Cast<UTextBlock>(GetWidgetFromName(Name)))
+		{
+			const FText NewText = FText::FromString(Value);
+			if (!Text->GetText().EqualTo(NewText)) Text->SetText(NewText);
+		}
+	};
+	auto EffectLine = [](const FBuffEffect& Effect)
+	{
+		return FString::Printf(TEXT("%s %+.2f%s"), *TowerUI::TagName(Effect.StatTag),
+			Effect.ValueType == EBuffValueType::Percent ? Effect.Value * 100.f : Effect.Value,
+			Effect.ValueType == EBuffValueType::Percent ? TEXT("%") : TEXT(""));
+	};
+
+	SetText(TEXT("TEXT_TowerName"), TowerStat->TowerName);
+	SetText(TEXT("TEXT_TowerMeta"), TowerStat->Grade + TEXT(" · ") + TowerStat->TowerType);
+	SetText(TEXT("TEXT_Level"), FString::Printf(TEXT("%d / %d"), TowerStat->CurrentLevel, TowerStat->MaxLevel));
+	if (UImage* Icon = Cast<UImage>(GetWidgetFromName(TEXT("TowerIcon"))))
+	{
+		if (TowerStat->TowerIcon) Icon->SetBrushFromTexture(TowerStat->TowerIcon);
+	}
+
+	const FName Key(*FString::Printf(TEXT("%s_Lv%d"), *TowerStat->TowerRowName.ToString(), TowerStat->CurrentLevel));
+	const FTowerDataRow* Row = TowerStat->TowerDataTable
+		? TowerStat->TowerDataTable->FindRow<FTowerDataRow>(Key, TEXT("Tower UI")) : nullptr;
+	const bool bSupport = Row && Row->BuffSetting.BuffType != EBuffComponentType::None;
+	FString Info;
+
+	if (bSupport)
+	{
+		const FBuffConfig& Buff = Row->BuffSetting;
+		SetText(TEXT("LBL_ATK"), Buff.BuffEffects.IsEmpty() ? TEXT("버프 효과") : TowerUI::TagName(Buff.BuffEffects[0].StatTag));
+		SetText(TEXT("TEXT_ATK"), Buff.BuffEffects.IsEmpty() ? TEXT("없음") : FString::Printf(TEXT("%+.2f%s"),
+			Buff.BuffEffects[0].ValueType == EBuffValueType::Percent ? Buff.BuffEffects[0].Value * 100.f : Buff.BuffEffects[0].Value,
+			Buff.BuffEffects[0].ValueType == EBuffValueType::Percent ? TEXT("%") : TEXT("")));
+		SetText(TEXT("LBL_ATK_Speed"), TEXT("지속시간"));
+		SetText(TEXT("TEXT_ATK_Speed"), Buff.BuffType == EBuffComponentType::Passive
+			? TEXT("범위 내 유지") : FString::Printf(TEXT("%.1f초"), Buff.BuffDuration));
+		SetText(TEXT("LBL_Range"), TEXT("버프 범위"));
+		SetText(TEXT("TEXT_Range"), FString::Printf(TEXT("%.0f"), IsValid(OwnerTower) ? OwnerTower->GetRangeRadius() : Buff.BuffRadius));
+		SetText(TEXT("LBL_Type"), TEXT("적용 대상"));
+		SetText(TEXT("TEXT_Type"), Buff.BuffTarget == EBuffTarget::AllyTower ? TEXT("아군 타워") : TEXT("적"));
+
+		Info = Buff.BuffType == EBuffComponentType::Active ? TEXT("액티브 효과\n") : TEXT("지속 효과\n");
+		for (const FBuffEffect& Effect : Buff.BuffEffects) Info += EffectLine(Effect) + TEXT("\n");
+		if (Buff.BuffType == EBuffComponentType::Active)
+			Info += FString::Printf(TEXT("범위: %.0f\n지속 %.1f초 · 재사용 %.1f초\n"), Buff.BuffRadius, Buff.BuffDuration, Buff.BuffCooldown);
+		else
+			Info += FString::Printf(TEXT("범위: %.0f\n적용 주기 %.1f초 · 범위 내 유지\n"), Buff.BuffRadius, Buff.BuffInterval);
+	}
+	else
+	{
+		SetText(TEXT("LBL_ATK"), TEXT("공격력"));
+		SetText(TEXT("TEXT_ATK"), FString::Printf(TEXT("%.0f"), TowerStat->GetStat(UStatComponent::GetTag(TEXT("Stat.AttackDamage")))));
+
+		float SpeedBonus = 0.f;
+		if (const ATowerDefenseGameMode* Mode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(this)))
+		{
+			for (const FBuffEffect& Effect : Mode->InGameUpgrades)
+				if (Effect.StatTag == UStatComponent::GetTag(TEXT("Upgrade.AttackSpeed"))) SpeedBonus += Effect.Value;
+		}
+		const float Interval = FMath::Max(0.01f,
+			TowerStat->GetStat(UStatComponent::GetTag(TEXT("Stat.AttackSpeed"))) * (1.f - SpeedBonus));
+		SetText(TEXT("LBL_ATK_Speed"), TEXT("초당 공격 횟수"));
+		SetText(TEXT("TEXT_ATK_Speed"), FString::Printf(TEXT("%.2f /s"), 1.f / Interval));
+		SetText(TEXT("LBL_Range"), TEXT("공격 사거리"));
+		SetText(TEXT("TEXT_Range"), FString::Printf(TEXT("%.0f"), IsValid(OwnerTower) ? OwnerTower->GetRangeRadius() : 0.f));
+		SetText(TEXT("LBL_Type"), TEXT("타워 유형"));
+		SetText(TEXT("TEXT_Type"), TowerStat->TowerType);
+
+		Info = TEXT("공격 효과\n");
+		if (!TowerStat->TowerInfo.IsEmpty() && TowerStat->TowerInfo != TEXT("None"))
+			Info += TowerStat->TowerInfo + TEXT("\n");
+		if (!TowerStat->Elements.IsEmpty()) Info += TowerUI::TagList(TowerStat->Elements) + TEXT("\n");
+		if (!TowerStat->AttackTypes.IsEmpty()) Info += TowerUI::TagList(TowerStat->AttackTypes) + TEXT("\n");
+		if (!TowerStat->Abilities.IsEmpty()) Info += TowerUI::TagList(TowerStat->Abilities) + TEXT("\n");
+	}
+
+	Info += TEXT("\n적용 중인 효과 · 시너지 / 버프\n");
+	if (TowerStat->ActiveBuffs.IsEmpty()) Info += TEXT("적용 중인 효과 없음\n");
+	for (const FBuffEffect& Effect : TowerStat->ActiveBuffs)
+	{
+		Info += EffectLine(Effect) + TEXT(" · ") +
+			(Effect.SourceKey.ToString().StartsWith(TEXT("Synergy_")) ? TEXT("시너지") : TEXT("타워 효과")) + TEXT("\n");
+	}
+
+	FString Bonuses;
+	for (const auto& Stat : TowerStat->CurrentStats)
+	{
+		const float Base = TowerStat->GetBaseStat(Stat.Key);
+		const float Diff = Stat.Value - Base;
+		if (!FMath::IsNearlyZero(Diff))
+			Bonuses += FString::Printf(TEXT("%s %.2f (%+.2f)\n"), *TowerUI::TagName(Stat.Key), Stat.Value, Diff);
+	}
+	if (!Bonuses.IsEmpty()) Info += TEXT("\n기본 대비 보너스\n") + Bonuses;
+	Info += TowerStat->CurrentLevel < TowerStat->MaxLevel
+		? FString::Printf(TEXT("\n\n다음 강화 · %.0f G"), TowerStat->GetNextLevelGoldCost())
+		: TEXT("\n\n최대 레벨");
+
+	if (Info != LastRenderedDetails)
+	{
+		if (DetailedEffectsPanel) BuildDetailsPanel(Info);
+		else SetText(TEXT("DetailedEffects"), Info);
+	}
+
+	SetText(TEXT("TEXT_UpgradeCost"), TowerStat->CurrentLevel < TowerStat->MaxLevel
+		? FString::Printf(TEXT("강화 · %.0f G"), TowerStat->GetNextLevelGoldCost())
+		: TEXT("최대 레벨"));
+	if (UWidget* Skill = GetWidgetFromName(TEXT("Border_245")))
+		Skill->SetVisibility(IsValid(TowerMana) ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	if (IsValid(TowerMana))
+	{
+		SetText(TEXT("TextBlock_916"), TEXT("스킬 사용"));
+		SetText(TEXT("Text_AutoFire"), TowerMana->bAutoFire ? TEXT("자동 ON") : TEXT("자동 OFF"));
+	}
 }

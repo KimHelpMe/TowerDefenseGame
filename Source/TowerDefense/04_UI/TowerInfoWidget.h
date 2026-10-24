@@ -7,6 +7,7 @@
 #include "TowerInfoWidget.generated.h"
 
 class UTowerStatComponent;
+class UVerticalBox;
 
 UCLASS()
 class TOWERDEFENSE_API UTowerInfoWidget : public UUserWidget
@@ -17,6 +18,10 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
 
+	void StyleStatCards();
+	void EnsureDetailsPanel();
+	void BuildDetailsPanel(const FString& Details);
+
 public:
 
 	UPROPERTY(BlueprintReadWrite)
@@ -24,8 +29,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	UManaComponent* TowerMana;
-
-public:
 
 	UFUNCTION(BlueprintCallable)
 	void LevelUp();
@@ -39,4 +42,9 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	ABaseTower* OwnerTower;
 
+private:
+	UPROPERTY(Transient)
+	UVerticalBox* DetailedEffectsPanel = nullptr;
+
+	FString LastRenderedDetails;
 };
