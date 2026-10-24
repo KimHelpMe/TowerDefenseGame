@@ -201,6 +201,8 @@ void AEnemy::AttackBase()
 
 void AEnemy::OnEnemyDeath()
 {
+	// 사망 후 제거 대기(1초) 중 다시 호출되면 보상·분열이 중복되므로 무시.
+	if (bIsDead) return;
 	bIsDead = true;
 	bReachedBase = true;
 	GetWorldTimerManager().ClearTimer(EnemyAttackHandle);
