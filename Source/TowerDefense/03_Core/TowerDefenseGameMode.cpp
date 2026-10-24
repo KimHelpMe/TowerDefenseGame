@@ -28,6 +28,10 @@ ATowerDefenseGameMode::ATowerDefenseGameMode()
 	bIsGameOver = false;
 
 
+	// 위젯 클래스 기본값(GameMode BP에서 덮어쓸 수 있음).
+	MainMenuWidgetClass = TSoftClassPtr<UMainMenuWidget>(FSoftClassPath(TEXT("/Game/03_UI/WBP_MainMenu.WBP_MainMenu_C")));
+	BattleResultWidgetClass = TSoftClassPtr<UBattleResultWidget>(FSoftClassPath(TEXT("/Game/03_UI/WBP_BattleResult.WBP_BattleResult_C")));
+
 	// 타워 슬롯(Tower Slot)
 	MaxTowerSlot = 30;
 	CurrentTowerSlot = 0;
@@ -58,10 +62,7 @@ FFantasyUITheme::ApplyToViewport(GetWorld());
 	OnExpChanged.Broadcast(PlayerLevel, Exp, MaxExp);
 
 	if (UGameplayStatics::ParseOption(OptionsString, TEXT("StartBattle")) == TEXT("1")) return;
-	UClass* WidgetClass = StaticLoadClass(
-		UMainMenuWidget::StaticClass(),
-		nullptr,
-		TEXT("/Game/03_UI/WBP_MainMenu.WBP_MainMenu_C"));
+	UClass* WidgetClass = MainMenuWidgetClass.LoadSynchronous();
 	if (!WidgetClass) WidgetClass = UMainMenuWidget::StaticClass();
 	if (UMainMenuWidget* MainMenuWidget = CreateWidget<UMainMenuWidget>(GetWorld(), WidgetClass))
 	{
@@ -149,7 +150,7 @@ void ATowerDefenseGameMode::TriggerVictory()
 
 void ATowerDefenseGameMode::ShowBattleResult()
 {
-    UClass* ResultClass=LoadClass<UBattleResultWidget>(nullptr,TEXT("/Game/03_UI/WBP_BattleResult.WBP_BattleResult_C"));
+    UClass* ResultClass=BattleResultWidgetClass.LoadSynchronous();
     if (ResultClass) if (UBattleResultWidget* Result=CreateWidget<UBattleResultWidget>(GetWorld(),ResultClass)) Result->AddToViewport(100);
 }
 
