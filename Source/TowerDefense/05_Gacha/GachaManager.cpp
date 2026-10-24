@@ -49,6 +49,10 @@ void AGachaManager::OpenGacha(ATowerSlot* Slot)
 {
 	if (!IsValid(Slot) || !GachaWidgetClass) return;
 
+	// 이미 열린 가챠 위젯이 화면에 있으면 다른 슬롯을 클릭해도 새로 열지 않는다.
+	// (덮어쓰면 이전 위젯을 닫을 수 없게 되고 CurrentSlot이 바뀐다.)
+	if (bIsGachaOpen && IsValid(GachaWidget) && GachaWidget->IsInViewport()) return;
+
 	GachaWidget = CreateWidget<UGachaWidget>(GetWorld(), GachaWidgetClass);
 	if (!GachaWidget) return;
 
