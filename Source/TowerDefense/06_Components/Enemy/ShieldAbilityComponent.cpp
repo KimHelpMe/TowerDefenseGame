@@ -12,6 +12,9 @@ UShieldAbilityComponent::UShieldAbilityComponent()
 
 float UShieldAbilityComponent::AbsorbDamage(float IncomingDamage)
 {
+	// Negative or invalid damage must never increase the shield.
+	if (!FMath::IsFinite(IncomingDamage) || IncomingDamage <= 0.f) return 0.f;
+
 	if (IncomingDamage <= ShieldAmount)
 	{
 		ShieldAmount -= IncomingDamage;
