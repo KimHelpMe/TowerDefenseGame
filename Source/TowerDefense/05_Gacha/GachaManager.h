@@ -19,10 +19,6 @@ public:
 
 	AGachaManager();
 
-	// 전체 가중치 합계 (자동 계산용)
-	UPROPERTY(EditAnywhere)
-	float TotalPoolRate;
-
 	// 뽑기 풀(등급별)
 	UPROPERTY(EditAnywhere)
 	TArray<TSubclassOf<AActor>> CommonPool;
@@ -73,10 +69,6 @@ public:
 public:
 
 	// 뽑기 풀 중복 관련.
-
-	// 설치된 타워 클래스 목록.
-	UPROPERTY(VisibleAnywhere)
-	TArray<TSubclassOf<AActor>> InstalledTowerClasses;
 
 	// 업그레이드 아이템 선택 회수.
 	UPROPERTY(VisibleAnywhere)

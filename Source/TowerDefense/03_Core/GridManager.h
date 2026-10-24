@@ -41,9 +41,6 @@ public:
 	UFUNCTION()
 	void HidePreview();
 
-	UFUNCTION()
-	void OnTileSelected(AGridTile* Tile);
-
 protected:
 
 	virtual void BeginPlay() override;

@@ -33,10 +33,6 @@ ACameraManager::ACameraManager()
 	MouseRotationSpeed = 0.15f;
 	EdgeScrollThreshold = 10.f;
 	ZoomSpeed = 200.f;
-	MinZoom = 500.f;
-	MaxZoom = 4000.f;
-	MinPitch = -30.f;
-	MaxPitch = -60.f;
 }
 
 void ACameraManager::BeginPlay()

@@ -23,8 +23,6 @@ public:
 	UPROPERTY(EditAnywhere)
 	int32 MinionSpawnCount;
 
-	UPROPERTY(VisibleAnywhere)
-	bool bIsInvincible = false;
 
 public:
 

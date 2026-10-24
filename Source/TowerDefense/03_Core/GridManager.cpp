@@ -77,10 +77,3 @@ void AGridManager::HidePreview()
 	if (!PreviewMesh) return;
 	PreviewMesh->SetVisibility(false);
 }
-
-void AGridManager::OnTileSelected(AGridTile* Tile)
-{
-	if (!Tile) return;
-	HidePreview();
-	DisablePlacementMode();
-}
