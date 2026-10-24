@@ -1,11 +1,11 @@
-#include "BaseTower.h"
+﻿#include "BaseTower.h"
 #include "TowerSlot.h"
 #include "TowerStatComponent.h"
 #include "TowerInfoWidget.h"
+#include "TowerRangeDecalComponent.h"
 #include "SynergyManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "EpicTowerManager.h"
-#include "UObject/ConstructorHelpers.h"
 
 ABaseTower::ABaseTower()
 {
@@ -19,11 +19,7 @@ ABaseTower::ABaseTower()
 	RangeDecalComponent = CreateDefaultSubobject<UDecalComponent>(TEXT("RangeDecalComponent"));
 	RangeDecalComponent->SetupAttachment(RootComponent);
 	RangeDecalComponent->SetVisibility(false);
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> RangeMaterial(TEXT("/Game/05_Materials/M_RangeDecal.M_RangeDecal"));
-	if (RangeMaterial.Succeeded())
-	{
-		RangeDecalComponent->SetDecalMaterial(RangeMaterial.Object);
-	}
+	TowerRangeDecal = CreateDefaultSubobject<UTowerRangeDecalComponent>(TEXT("TowerRangeDecal"));
 
 
 	TowerMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TowerMeshComponent"));
@@ -208,10 +204,7 @@ void ABaseTower::OnTowerClicked(UPrimitiveComponent* TouchedComponent, FKey Butt
 {
 	if (TowerInfoWidget && TowerInfoWidget->IsInViewport())
 	{
-		if (RangeDecalComponent)
-		{
-			RangeDecalComponent->SetVisibility(false);
-		}
+        if (TowerRangeDecal) TowerRangeDecal->SetRangeVisible(false);
 		TowerInfoWidget->CloseWidget();
 		return;
 	}
@@ -225,17 +218,7 @@ void ABaseTower::OnTowerClicked(UPrimitiveComponent* TouchedComponent, FKey Butt
 	TowerInfoWidget->InitWidget(TowerStat);
 	TowerInfoWidget->AddToViewport();
 
-	const float Range = GetRangeRadius();
-	if (RangeDecalComponent && Range > 0.f)
-	{
-		RangeDecalComponent->DecalSize = FVector(100.f, Range, Range);
-		RangeDecalComponent->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
-		RangeDecalComponent->SetVisibility(true);
-	}
-	else if (RangeDecalComponent)
-	{
-		RangeDecalComponent->SetVisibility(false);
-	}
+    if (TowerRangeDecal) TowerRangeDecal->SetRangeVisible(true);
 }
 float ABaseTower::GetRangeRadius()
 {

@@ -1,4 +1,5 @@
 ﻿#include "TowerInfoWidget.h"
+#include "TowerRangeDecalComponent.h"
 #include "UIEffectFormatting.h"
 
 #include "FantasyUITheme.h"
@@ -16,7 +17,7 @@ void UTowerInfoWidget::LevelUp()
 
 void UTowerInfoWidget::CloseWidget()
 {
-	if (IsValid(OwnerTower) && OwnerTower->RangeDecalComponent) OwnerTower->RangeDecalComponent->SetVisibility(false);
+	if (IsValid(OwnerTower) && OwnerTower->TowerRangeDecal) OwnerTower->TowerRangeDecal->SetRangeVisible(false);
 	RemoveFromParent();
 }
 

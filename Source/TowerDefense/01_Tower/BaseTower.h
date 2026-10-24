@@ -16,6 +16,7 @@
 
 class ATowerSlot;
 class UTowerInfoWidget;
+class UTowerRangeDecalComponent;
 
 UCLASS()
 class TOWERDEFENSE_API ABaseTower : public AActor, public IGachable
@@ -99,6 +100,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UDecalComponent* RangeDecalComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tower Range")
+    UTowerRangeDecalComponent* TowerRangeDecal;
 
 	UFUNCTION()
 	virtual float GetRangeRadius();
