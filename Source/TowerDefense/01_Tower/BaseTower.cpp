@@ -143,7 +143,7 @@ void ABaseTower::UpdateTurretRotation(float DeltaTime)
 
 	if (TurretToRotate == nullptr) return;
 
-	if (CurrentTurretTarget)
+	if (IsValid(CurrentTurretTarget))
 	{
 		FVector TargetLocation = CurrentTurretTarget->GetActorLocation();
 		FVector MyLocation = GetActorLocation();

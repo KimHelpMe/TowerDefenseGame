@@ -53,7 +53,7 @@ void AProjectile::OnHit(UPrimitiveComponent* OverlappedComp,
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (Cast<AProjectile>(OtherActor)) return;
+	if (!IsValid(OtherActor) || Cast<AProjectile>(OtherActor)) return;
 
 	UE_LOG(LogTemp, Warning, TEXT("OnHit called, OtherActor: %s"), *OtherActor->GetName());
 
@@ -81,7 +81,9 @@ void AProjectile::OnHit(UPrimitiveComponent* OverlappedComp,
 		}
 	}
 
-	if (enemy && IsValid(enemy) && TowerStatComponent)
+	// TowerStatComponent는 UPROPERTY라 GC 후 null이 되므로 null 체크로 충분함.
+	// 발사한 타워가 레벨업/합성으로 교체되어도 날아가던 탄의 피해는 유지하기 위해 IsValid는 쓰지 않음.
+	if (IsValid(enemy) && TowerStatComponent)
 	{
 		float FinalDamage = TowerStatComponent->GetStat(UStatComponent::GetTag("Stat.AttackDamage")) * (1.f + DamageBonus);
 		enemy->ReceiveDamage(FinalDamage, TowerStatComponent);
