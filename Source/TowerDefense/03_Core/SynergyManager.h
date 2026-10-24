@@ -25,7 +25,7 @@ public:
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UDataTable* SynergyDataTable = nullptr;
+	TObjectPtr<UDataTable> SynergyDataTable = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TMap<FGameplayTag, int32> ActiveSynergySteps;

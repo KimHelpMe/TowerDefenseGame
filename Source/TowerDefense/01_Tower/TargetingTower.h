@@ -21,7 +21,7 @@ public:
 	TArray<AEnemy*> CurrentTargets;
 
 	UPROPERTY(EditAnywhere)
-	UAttackTypeComponent* AttackTypeComponent;
+	TObjectPtr<UAttackTypeComponent> AttackTypeComponent;
 
 	virtual void Tick(float DeltaTime) override;
 

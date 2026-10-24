@@ -39,7 +39,7 @@ public:
 	int32 CurrentSpeedIndex;
 
 	UPROPERTY(VisibleAnywhere)
-	ABase* Base;
+	TObjectPtr<ABase> Base;
 
 public:
 

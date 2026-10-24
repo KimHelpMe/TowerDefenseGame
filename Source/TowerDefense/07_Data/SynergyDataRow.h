@@ -44,5 +44,5 @@ public:
 	FLinearColor BadgeColor = FLinearColor(0.f, 0.f, 0.f, 0.f); // Alpha 0 = use the default gold accent.
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UTexture2D* SynergyIcon = nullptr;
+	TObjectPtr<UTexture2D> SynergyIcon = nullptr;
 };

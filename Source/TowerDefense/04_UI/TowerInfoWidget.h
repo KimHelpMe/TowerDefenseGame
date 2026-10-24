@@ -25,10 +25,10 @@ protected:
 public:
 
 	UPROPERTY(BlueprintReadWrite)
-	UTowerStatComponent* TowerStat;
+	TObjectPtr<UTowerStatComponent> TowerStat;
 
 	UPROPERTY(BlueprintReadWrite)
-	UManaComponent* TowerMana;
+	TObjectPtr<UManaComponent> TowerMana;
 
 	UFUNCTION(BlueprintCallable)
 	void LevelUp();
@@ -40,11 +40,11 @@ public:
 	void InitWidget(UTowerStatComponent* Stat);
 
 	UPROPERTY(BlueprintReadWrite)
-	ABaseTower* OwnerTower;
+	TObjectPtr<ABaseTower> OwnerTower;
 
 private:
 	UPROPERTY(Transient)
-	UVerticalBox* DetailedEffectsPanel = nullptr;
+	TObjectPtr<UVerticalBox> DetailedEffectsPanel = nullptr;
 
 	FString LastRenderedDetails;
 

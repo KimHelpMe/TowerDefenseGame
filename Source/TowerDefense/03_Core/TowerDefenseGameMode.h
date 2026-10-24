@@ -78,7 +78,7 @@ public:
 
 	// Level.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UDataTable* LevelDataTable;
+	TObjectPtr<UDataTable> LevelDataTable;
 
 	UFUNCTION()
 	void AddExp(float Amount);
@@ -95,16 +95,16 @@ public:
 
 	// 본진 힐링, 필살기, 배속
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	ACommandManager* CommandManager;
+	TObjectPtr<ACommandManager> CommandManager;
 
 public:
 
 	// 속성 상성 및 방어 상성.
 	UPROPERTY(EditAnywhere)
-	UDataTable* DefenseTypeDataTable;
+	TObjectPtr<UDataTable> DefenseTypeDataTable;
 
 	UPROPERTY(EditAnywhere)
-	UDataTable* ElementalDataTable;
+	TObjectPtr<UDataTable> ElementalDataTable;
 
 public:
 
@@ -151,13 +151,13 @@ public:
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	ARoundManager* RoundManager;
+	TObjectPtr<ARoundManager> RoundManager;
 
 
 
 	// GridManager.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	AGridManager* GridManager;
+	TObjectPtr<AGridManager> GridManager;
 
 public:
 

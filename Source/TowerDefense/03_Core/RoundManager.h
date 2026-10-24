@@ -22,16 +22,16 @@ public:
 public:
 
 	UPROPERTY(EditAnywhere)
-	UDataTable* RoundDataTable = nullptr;
+	TObjectPtr<UDataTable> RoundDataTable = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 CurrentRound;
 
 	UPROPERTY(EditAnywhere)
-	AEnemySpawnSystem* SpawnSystem = nullptr;
+	TObjectPtr<AEnemySpawnSystem> SpawnSystem = nullptr;
 
 	UPROPERTY()
-	ATowerDefenseGameMode* GameMode;
+	TObjectPtr<ATowerDefenseGameMode> GameMode;
 
 public:
 

@@ -22,10 +22,10 @@ public:
 	ABossEnemy();
 
 	UPROPERTY(EditAnywhere)
-	UBossAbilityComponent* BossAbilityComponent = nullptr;
+	TObjectPtr<UBossAbilityComponent> BossAbilityComponent = nullptr;
 
     UPROPERTY(EditAnywhere)
-	UTexture2D* BossPortrait = nullptr;
+	TObjectPtr<UTexture2D> BossPortrait = nullptr;
 
 	UPROPERTY(EditAnywhere)
 	FString BossName;
@@ -34,7 +34,7 @@ public:
 	TSubclassOf<UBossHPBarWidget> BossHPBarWidgetClass;
 
 	UPROPERTY(EditAnywhere)
-	UBossHPBarWidget* BossHPBarWidget = nullptr;
+	TObjectPtr<UBossHPBarWidget> BossHPBarWidget = nullptr;
 
 	// Widget.
 	UPROPERTY(EditAnywhere)

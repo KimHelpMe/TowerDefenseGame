@@ -29,7 +29,7 @@ public:
 	FString Grade;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UTexture2D* UpgradeIcon;
+	TObjectPtr<UTexture2D> UpgradeIcon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FBuffEffect> UpgradeEffects;

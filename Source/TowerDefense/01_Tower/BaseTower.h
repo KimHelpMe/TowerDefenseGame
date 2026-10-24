@@ -28,16 +28,16 @@ public:
 	ABaseTower();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UTowerStatComponent* TowerStatComponent;
+	TObjectPtr<UTowerStatComponent> TowerStatComponent;
 
 	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* TowerMeshComponent;
+	TObjectPtr<UStaticMeshComponent> TowerMeshComponent;
 
 	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* TurretStaticMeshComponent;
+	TObjectPtr<UStaticMeshComponent> TurretStaticMeshComponent;
 
 	UPROPERTY(EditAnywhere)
-	USkeletalMeshComponent* TurretSkeletalMeshComponent;
+	TObjectPtr<USkeletalMeshComponent> TurretSkeletalMeshComponent;
 
 	UPROPERTY(EditAnywhere)
 	FRotator TurretRotationOffset;
@@ -48,7 +48,7 @@ public:
 
 	// 바라볼 대상.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	AActor* CurrentTurretTarget;
+	TObjectPtr<AActor> CurrentTurretTarget;
 
 	UFUNCTION()
 	void UpdateTurretRotation(float DeltaTime);
@@ -59,21 +59,21 @@ public:
 
 
 	UPROPERTY(EditAnywhere)
-	USceneComponent* MuzzleComponent;
+	TObjectPtr<USceneComponent> MuzzleComponent;
 
 	// Level Up 외형 BP.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<ABaseTower> NextLevelClass;
 
 	UPROPERTY(EditAnywhere)
-	UAudioComponent* TowerSound;
+	TObjectPtr<UAudioComponent> TowerSound;
 
 	UPROPERTY(EditAnywhere)
-	UNiagaraComponent* TowerEffect;
+	TObjectPtr<UNiagaraComponent> TowerEffect;
 
 	// Slot.
 	UPROPERTY()
-	ATowerSlot* OwnerSlot;
+	TObjectPtr<ATowerSlot> OwnerSlot;
 
 
 	// FString 임시로 사용.
@@ -93,16 +93,16 @@ public:
 	FString TowerInfo;
 
 	UPROPERTY(EditAnywhere)
-	USphereComponent* TowerAttackRangeComponent;
+	TObjectPtr<USphereComponent> TowerAttackRangeComponent;
 
 
 	// Decal.
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UDecalComponent* RangeDecalComponent;
+	TObjectPtr<UDecalComponent> RangeDecalComponent;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Tower Range")
-    UTowerRangeDecalComponent* TowerRangeDecal;
+    TObjectPtr<UTowerRangeDecalComponent> TowerRangeDecal;
 
 	UFUNCTION()
 	virtual float GetRangeRadius();
@@ -110,7 +110,7 @@ public:
 public:
 
 	UPROPERTY()
-	UTowerInfoWidget* TowerInfoWidget = nullptr;
+	TObjectPtr<UTowerInfoWidget> TowerInfoWidget = nullptr;
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UTowerInfoWidget> TowerInfoWidgetClass;

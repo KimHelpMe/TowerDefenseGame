@@ -19,10 +19,10 @@ public:
 
 
 	UPROPERTY(EditAnywhere)
-	UProjectileMovementComponent* projectileMoveComp;
+	TObjectPtr<UProjectileMovementComponent> projectileMoveComp;
 
 	UPROPERTY(EditAnywhere)
-	USphereComponent* sphereComponent;
+	TObjectPtr<USphereComponent> sphereComponent;
 
 
 	UFUNCTION()
@@ -34,7 +34,7 @@ public:
 		const FHitResult& SweepResult);
 
 	UPROPERTY()
-	UTowerStatComponent* TowerStatComponent;
+	TObjectPtr<UTowerStatComponent> TowerStatComponent;
 
 	UFUNCTION()
 	void OnProjectileStopped(const FHitResult& ImpactResult);

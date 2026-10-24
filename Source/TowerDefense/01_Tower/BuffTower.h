@@ -20,13 +20,13 @@ public:
 	ABuffTower();
 
 	UPROPERTY(EditAnywhere)
-	USphereComponent* BuffRangeComponent;
+	TObjectPtr<USphereComponent> BuffRangeComponent;
 
 	UPROPERTY(EditAnywhere)
 	float BuffRange;
 
 	UPROPERTY(EditAnywhere)
-	UBuffTypeComponent* BuffComponent;
+	TObjectPtr<UBuffTypeComponent> BuffComponent;
 
 	virtual float GetRangeRadius() override;
 

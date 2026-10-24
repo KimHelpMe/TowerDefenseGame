@@ -18,7 +18,7 @@ public:
 public:
 
 	UPROPERTY(VisibleAnywhere)
-	USplineComponent* splineComponent;
+	TObjectPtr<USplineComponent> splineComponent;
 
 protected:
 

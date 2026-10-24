@@ -20,7 +20,7 @@ public:
 	UEnemyStatComponent();
 
 	UPROPERTY(EditAnywhere)
-	UDataTable* EnemyDataTable;
+	TObjectPtr<UDataTable> EnemyDataTable;
 
 	UPROPERTY(EditAnywhere)
 	FName EnemyRowName;

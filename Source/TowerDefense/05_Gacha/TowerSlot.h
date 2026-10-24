@@ -22,7 +22,7 @@ public:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* TowerSlotMesh;
+	TObjectPtr<UStaticMeshComponent> TowerSlotMesh;
 
 	UPROPERTY(EditAnywhere)
 	bool bIsOccupied;
@@ -35,10 +35,10 @@ public:
 
 	// 스폰된 타워 인스턴스를 참조해야함. 그래서 포인터.
 	UPROPERTY(EditAnywhere)
-	ABaseTower* InstalledTower;
+	TObjectPtr<ABaseTower> InstalledTower;
 
 	UPROPERTY(EditAnywhere)
-	AGachaManager* GachaManager;
+	TObjectPtr<AGachaManager> GachaManager;
 
 	UPROPERTY()
 	TArray<TSubclassOf<AActor>> SavedRollResult;
@@ -46,7 +46,7 @@ public:
 
 	// 슬롯 반환.
 	UPROPERTY()
-	AGridTile* OwnerTile;
+	TObjectPtr<AGridTile> OwnerTile;
 
 
 public:	

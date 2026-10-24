@@ -18,7 +18,7 @@ public:
 	AMagicTower();
 
 	UPROPERTY(EditAnywhere)
-	UManaComponent* ManaComponent;
+	TObjectPtr<UManaComponent> ManaComponent;
 
 protected:
 	virtual void BeginPlay() override;

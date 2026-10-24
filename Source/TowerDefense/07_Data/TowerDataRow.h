@@ -105,6 +105,6 @@ public:
 	
 
 	UPROPERTY(EditAnywhere)
-	UTexture2D* Icon = nullptr;
+	TObjectPtr<UTexture2D> Icon = nullptr;
 
 };

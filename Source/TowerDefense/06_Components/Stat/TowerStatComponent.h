@@ -38,7 +38,7 @@ public:
 	FGameplayTagContainer SynergyTags;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UTexture2D* TowerIcon;
+	TObjectPtr<UTexture2D> TowerIcon;
 
 	UPROPERTY(EditAnywhere)
 	FGameplayTagContainer Abilities;
@@ -49,7 +49,7 @@ public:
 	// Data Table
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UDataTable* TowerDataTable = nullptr;
+	TObjectPtr<UDataTable> TowerDataTable = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName TowerRowName;
