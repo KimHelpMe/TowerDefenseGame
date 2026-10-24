@@ -44,11 +44,25 @@ void UEnemyStatComponent::InitFromDataTable()
         Elements = Row->Elements;
 
         // 스탯 적용.
-
-        for (FBuffEffect& Stat : Row->Stats)
+        // SetBaseStat은 매번 HP를 MaxHP로 클램프하므로, 행 순서(HP가 MaxHP보다 먼저)에 따라
+        // HP가 기본 MaxHP(100)로 잘리지 않도록 모두 넣은 뒤 한 번만 재계산한다.
+        const FGameplayTag HPTag = GetTag("Stat.HP");
+        const FGameplayTag MaxHPTag = GetTag("Stat.MaxHP");
+        bool bRowHasHP = false;
+        bool bRowHasMaxHP = false;
+        for (const FBuffEffect& Stat : Row->Stats)
         {
-            SetBaseStat(Stat.StatTag, Stat.Value);
+            BaseStats.Add(Stat.StatTag, Stat.Value);
+            bRowHasHP |= Stat.StatTag == HPTag;
+            bRowHasMaxHP |= Stat.StatTag == MaxHPTag;
         }
+
+        // MaxHP만 지정된 행은 최대 체력으로 시작.
+        if (bRowHasMaxHP && !bRowHasHP)
+        {
+            BaseStats.Add(HPTag, GetBaseStat(MaxHPTag));
+        }
+        RecalculateStats();
 
         // 외형 적용.
         AEnemy* Enemy = Cast<AEnemy>(GetOwner());
