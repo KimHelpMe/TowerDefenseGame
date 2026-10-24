@@ -46,8 +46,17 @@ void UPassiveBuffComponent::ApplyBuff()
 void UPassiveBuffComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	const float Interval = FMath::Max(0.1f, BuffInterval);
-	GetWorld()->GetTimerManager().SetTimer(BuffTimerHandle, this, &UPassiveBuffComponent::ApplyBuff, Interval, true);
+	RestartBuffTimer();
+}
+
+void UPassiveBuffComponent::RestartBuffTimer()
+{
+	// BeginPlay 전이면 BeginPlay에서 현재 BuffInterval로 설정된다.
+	UWorld* World = GetWorld();
+	if (!World || !HasBegunPlay()) return;
+
+	const float Interval = FMath::IsFinite(BuffInterval) ? FMath::Max(0.1f, BuffInterval) : 1.f;
+	World->GetTimerManager().SetTimer(BuffTimerHandle, this, &UPassiveBuffComponent::ApplyBuff, Interval, true);
 }
 
 void UPassiveBuffComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

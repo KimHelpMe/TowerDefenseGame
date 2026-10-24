@@ -224,6 +224,8 @@ void UTowerStatComponent::ApplyBuffFromData(const FBuffConfig& BuffSetting)
             PassiveBuffComp->BuffEffects = BuffSetting.BuffEffects;
             PassiveBuffComp->BuffInterval = BuffSetting.BuffInterval;
             PassiveBuffComp->BuffRadius = BuffSetting.BuffRadius;
+            // Passive 컴포넌트가 먼저 BeginPlay했으면 기본 주기로 걸린 타이머를 데이터 주기로 다시 설정.
+            PassiveBuffComp->RestartBuffTimer();
         }
     }
     break;
