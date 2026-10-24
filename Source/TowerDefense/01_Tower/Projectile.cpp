@@ -26,6 +26,8 @@ AProjectile::AProjectile()
 	projectileMoveComp->bShouldBounce = false;
 	projectileMoveComp->ProjectileGravityScale = 0.f; // 중력 제거
 
+	// 빗나간 탄이 월드에 계속 남지 않도록 수명 제한.
+	InitialLifeSpan = 3.f;
 
 }
 
