@@ -76,7 +76,7 @@ void ACommandManager::PurgeAllEnemies()
 		if (Cast<ABossEnemy>(Actor)) continue;
 
 		AEnemy* Enemy = Cast<AEnemy>(Actor);
-		if (Enemy) Enemy->OnEnemyDeath();
+		if (IsValid(Enemy) && !Enemy->bIsDead) Enemy->OnEnemyDeath();
 
 	}
 	PurgeCooldownRemaining = PurgeCooldown;
