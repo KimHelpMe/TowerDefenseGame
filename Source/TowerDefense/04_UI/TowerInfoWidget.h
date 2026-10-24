@@ -47,4 +47,10 @@ private:
 	UVerticalBox* DetailedEffectsPanel = nullptr;
 
 	FString LastRenderedDetails;
+
+	// 표시 갱신(무거운 문자열·테이블 작업)을 RefreshInterval 간격으로 제한.
+	void RefreshInfo();
+	static constexpr float RefreshInterval = 0.1f;
+	float TimeSinceRefresh = 0.f;
+	bool bRefreshPending = true;
 };
