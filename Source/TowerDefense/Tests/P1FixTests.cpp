@@ -32,6 +32,9 @@
 #include "ShieldAbilityComponent.h"
 #include "SplitAbilityComponent.h"
 #include "PassiveBuffComponent.h"
+#include "AreaAttackComponent.h"
+#include "AirAbilityComponent.h"
+#include "Components/SphereComponent.h"
 #include "EnemyDataRow.h"
 #include "TowerDataRow.h"
 #include "SynergyDataRow.h"
@@ -81,6 +84,8 @@ namespace
 				CheckSplitSpacing();         // P1-16
 				CheckNegativeDamage();       // P1-17
 				CheckBossPhases();           // P1-18
+				SetupExplosionRadius();      // P1-19② (overlap query is checked next step)
+				CheckPassiveInterval();      // P1-19③
 				Step = 1;
 				NextStepTime = Now + 0.3;
 				return false;
@@ -93,6 +98,8 @@ namespace
 			}
 
 			CheckBuffRange();                // P1-11
+			CheckExplosionRadius();          // P1-19②
+			CheckLevelUpRegistration();      // P1-19④ (after the buff-range towers are gone)
 			CheckVictoryAndHeal();           // P1-13, P1-20
 			return true;
 		}
@@ -486,6 +493,179 @@ namespace
 			Boss->Destroy();
 		}
 
+		AEnemy* SpawnTestEnemy(const FVector& Location, bool bAir)
+		{
+			const FTransform Transform(Location);
+			AEnemy* Enemy = World->SpawnActorDeferred<AEnemy>(AEnemy::StaticClass(), Transform);
+			if (!Enemy) return nullptr;
+
+			UEnemyStatComponent* Stat = NewObject<UEnemyStatComponent>(Enemy);
+			Stat->SetBaseStat(UStatComponent::GetTag(TEXT("Stat.MaxHP")), 100.f);
+			Stat->SetBaseStat(UStatComponent::GetTag(TEXT("Stat.HP")), 100.f);
+			Enemy->AddInstanceComponent(Stat);
+			Stat->RegisterComponent();
+
+			// 오버랩 쿼리(ECC_Pawn)에 잡히도록 충돌체 추가.
+			USphereComponent* Body = NewObject<USphereComponent>(Enemy);
+			Body->SetupAttachment(Enemy->GetRootComponent());
+			Body->SetSphereRadius(30.f);
+			Body->SetCollisionObjectType(ECC_Pawn);
+			Body->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			Body->SetCollisionResponseToAllChannels(ECR_Overlap);
+			Enemy->AddInstanceComponent(Body);
+			Body->RegisterComponent();
+
+			if (bAir)
+			{
+				UAirAbilityComponent* Air = NewObject<UAirAbilityComponent>(Enemy);
+				Enemy->AddInstanceComponent(Air);
+				Air->RegisterComponent();
+			}
+			Enemy->FinishSpawning(Transform);
+			return Enemy;
+		}
+
+		void SetupExplosionRadius()
+		{
+			const FVector Center = TestLocation(7000.f);
+			AreaTower = SpawnTowerDeferred<ABaseTower>(ABaseTower::StaticClass(), TestLocation(7000.f, 3000.f), [](ABaseTower* Tower)
+			{
+				Tower->TowerStatComponent->Abilities.AddTag(UStatComponent::GetTag(TEXT("Ability.AttackGround")));
+			});
+			if (!AreaTower.IsValid())
+			{
+				Test->AddError(TEXT("[P1-19②] Area tower failed to spawn"));
+				return;
+			}
+			AreaTower->TowerStatComponent->SetBaseStat(UStatComponent::GetTag(TEXT("Stat.AttackDamage")), 10.f);
+			AreaTower->TowerStatComponent->SetBaseStat(UStatComponent::GetTag(TEXT("Stat.AttackRange")), 800.f);
+
+			UAreaAttackComponent* Area = NewObject<UAreaAttackComponent>(AreaTower.Get());
+			AreaTower->AddInstanceComponent(Area);
+			Area->RegisterComponent();
+			AreaComponent = Area;
+
+			AreaPrimary = SpawnTestEnemy(Center, false);
+			AreaNear = SpawnTestEnemy(Center + FVector(150.f, 0.f, 0.f), false);     // 폭발 반경(200) 안
+			AreaFar = SpawnTestEnemy(Center + FVector(400.f, 0.f, 0.f), false);      // 사거리(800) 안, 폭발 반경 밖
+			AreaAir = SpawnTestEnemy(Center + FVector(0.f, 100.f, 0.f), true);       // 반경 안이지만 공중
+		}
+
+		void CheckExplosionRadius()
+		{
+			if (!AreaComponent.IsValid() || !AreaPrimary.IsValid() || !AreaNear.IsValid() || !AreaFar.IsValid() || !AreaAir.IsValid())
+			{
+				Test->AddError(TEXT("[P1-19②] Explosion test actors are missing"));
+				return;
+			}
+			const FGameplayTag HPTag = UStatComponent::GetTag(TEXT("Stat.HP"));
+			auto HP = [&HPTag](AEnemy* Enemy) { return Enemy->EnemyStatComponent ? Enemy->EnemyStatComponent->GetStat(HPTag) : -1.f; };
+
+			AreaComponent->ExecuteAttack({ AreaPrimary.Get() });
+			Test->TestEqual(TEXT("[P1-19②] Primary target takes explosion damage"), HP(AreaPrimary.Get()), 90.f);
+			Test->TestEqual(TEXT("[P1-19②] Ground enemy inside ExplosionRadius takes damage"), HP(AreaNear.Get()), 90.f);
+			Test->TestEqual(TEXT("[P1-19②] Enemy inside attack range but outside ExplosionRadius is not hit"), HP(AreaFar.Get()), 100.f);
+			Test->TestEqual(TEXT("[P1-19②] Ground-only tower's explosion does not hit air enemies"), HP(AreaAir.Get()), 100.f);
+
+			for (TWeakObjectPtr<AEnemy> Enemy : { AreaPrimary, AreaNear, AreaFar, AreaAir }) if (Enemy.IsValid()) Enemy->Destroy();
+			if (AreaTower.IsValid()) AreaTower->Destroy();
+		}
+
+		void CheckPassiveInterval()
+		{
+			UDataTable* Table = NewObject<UDataTable>(GetTransientPackage());
+			Table->RowStruct = FTowerDataRow::StaticStruct();
+			FTowerDataRow Row{};
+			Row.MaxLevel = 3;
+			Row.BuffSetting.BuffType = EBuffComponentType::Passive;
+			Row.BuffSetting.BuffTarget = EBuffTarget::AllyTower;
+			Row.BuffSetting.BuffInterval = 3.f;
+			Row.BuffSetting.BuffRadius = 300.f;
+			Table->AddRow(TEXT("PassiveTower_Lv1"), Row);
+
+			ABaseTower* Tower = World->SpawnActor<ABaseTower>(ABaseTower::StaticClass(), TestLocation(8000.f), FRotator::ZeroRotator);
+			if (!Test->TestNotNull(TEXT("[P1-19③] Tower spawned"), Tower)) return;
+
+			// Passive 컴포넌트가 먼저 BeginPlay해 기본 주기(1초)로 타이머가 걸린 상황.
+			UPassiveBuffComponent* Passive = NewObject<UPassiveBuffComponent>(Tower);
+			Tower->AddInstanceComponent(Passive);
+			Passive->RegisterComponent();
+			FTimerManager& Timers = World->GetTimerManager();
+			Test->TestEqual(TEXT("[P1-19③] Passive timer starts with the default 1s interval"), Timers.GetTimerRate(Passive->BuffTimerHandle), 1.f);
+
+			Tower->TowerStatComponent->TowerDataTable = Table;
+			Tower->TowerStatComponent->TowerRowName = TEXT("PassiveTower");
+			Tower->TowerStatComponent->CurrentLevel = 1;
+			Tower->TowerStatComponent->InitFromDataTable();
+			Test->TestEqual(TEXT("[P1-19③] Data-table BuffInterval (3s) is applied to the running timer"), Timers.GetTimerRate(Passive->BuffTimerHandle), 3.f);
+
+			Tower->Destroy();
+		}
+
+		void CheckLevelUpRegistration()
+		{
+			AEpicTowerManager* EpicManager = Cast<AEpicTowerManager>(UGameplayStatics::GetActorOfClass(World.Get(), AEpicTowerManager::StaticClass()));
+			if (!Test->TestNotNull(TEXT("[P1-19④] EpicTowerManager available"), EpicManager)) return;
+			AGachaManager* Gacha = Cast<AGachaManager>(UGameplayStatics::GetActorOfClass(World.Get(), AGachaManager::StaticClass()));
+
+			// 해금 조건: AMagicTower 2개. 필드에는 레벨업할 1개만 둔다.
+			UDataTable* EpicTable = NewObject<UDataTable>(GetTransientPackage());
+			EpicTable->RowStruct = FEpicTowerDataRow::StaticStruct();
+			FEpicTowerDataRow EpicRow{};
+			EpicRow.EpicTowerClass = ABuffTower::StaticClass();
+			EpicRow.EpicType = EEpicTowerType::Unlock;
+			FEpicTowerConditionEntry Condition{};
+			Condition.TowerClass = AMagicTower::StaticClass();
+			Condition.RequiredLevel = 1;
+			EpicRow.Conditions = { Condition, Condition };
+			EpicTable->AddRow(TEXT("TestUnlock"), EpicRow);
+
+			UDataTable* TowerTable = NewObject<UDataTable>(GetTransientPackage());
+			TowerTable->RowStruct = FTowerDataRow::StaticStruct();
+			FTowerDataRow TowerRow{};
+			TowerRow.MaxLevel = 3;
+			TowerTable->AddRow(TEXT("TestMagic_Lv1"), TowerRow);
+			TowerTable->AddRow(TEXT("TestMagic_Lv2"), TowerRow);
+
+			UDataTable* SavedTable = EpicManager->EpicTowerDataTable;
+			EpicManager->EpicTowerDataTable = EpicTable;
+			EpicManager->UnlockedEpicTowers.Remove(ABuffTower::StaticClass());
+
+			ATowerSlot* Slot = World->SpawnActor<ATowerSlot>(ATowerSlot::StaticClass(), TestLocation(9000.f), FRotator::ZeroRotator);
+			AMagicTower* OldTower = SpawnTowerDeferred<AMagicTower>(AMagicTower::StaticClass(), TestLocation(9000.f), [TowerTable](AMagicTower* Tower)
+			{
+				Tower->TowerStatComponent->TowerDataTable = TowerTable;
+				Tower->TowerStatComponent->TowerRowName = TEXT("TestMagic");
+				Tower->TowerStatComponent->CurrentLevel = 1;
+				Tower->NextLevelClass = AMagicTower::StaticClass();
+			});
+			if (Slot && OldTower)
+			{
+				OldTower->OwnerSlot = Slot;
+				Slot->InstalledTower = OldTower;
+				OldTower->TowerStatComponent->LevelUp();
+				Test->TestTrue(TEXT("[P1-19④] Level up replaced the tower"), IsValid(Slot->InstalledTower) && Slot->InstalledTower != OldTower);
+				Test->TestFalse(TEXT("[P1-19④] Leveling one tower does not satisfy a two-tower epic condition"),
+					EpicManager->UnlockedEpicTowers.Contains(ABuffTower::StaticClass()));
+
+				// 대조군: 실제로 두 번째 타워가 생기면 해금되어야 한다.
+				AMagicTower* Second = World->SpawnActor<AMagicTower>(AMagicTower::StaticClass(), TestLocation(9000.f, 300.f), FRotator::ZeroRotator);
+				Test->TestTrue(TEXT("[P1-19④] Control: a real second tower does unlock the epic"),
+					EpicManager->UnlockedEpicTowers.Contains(ABuffTower::StaticClass()));
+				if (Second) Second->Destroy();
+				if (IsValid(Slot->InstalledTower)) Slot->InstalledTower->Destroy();
+			}
+			else
+			{
+				Test->AddError(TEXT("[P1-19④] Level-up test actors failed to spawn"));
+			}
+			if (Slot) Slot->Destroy();
+
+			EpicManager->UnlockedEpicTowers.Remove(ABuffTower::StaticClass());
+			if (Gacha) Gacha->EpicPool.Remove(ABuffTower::StaticClass());
+			EpicManager->EpicTowerDataTable = SavedTable;
+		}
+
 		void CheckVictoryAndHeal()
 		{
 			ABase* Base = Cast<ABase>(UGameplayStatics::GetActorOfClass(World.Get(), ABase::StaticClass()));
@@ -523,6 +703,12 @@ namespace
 		TWeakObjectPtr<ABaseTower> NearTower;
 		TWeakObjectPtr<ABaseTower> FarTower;
 		TWeakObjectPtr<UPassiveBuffComponent> BuffComponent;
+		TWeakObjectPtr<ABaseTower> AreaTower;
+		TWeakObjectPtr<UAreaAttackComponent> AreaComponent;
+		TWeakObjectPtr<AEnemy> AreaPrimary;
+		TWeakObjectPtr<AEnemy> AreaNear;
+		TWeakObjectPtr<AEnemy> AreaFar;
+		TWeakObjectPtr<AEnemy> AreaAir;
 		int32 Step = 0;
 		double NextStepTime = 0.;
 	};
