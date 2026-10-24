@@ -15,6 +15,7 @@ class ATowerSlot;
 class ARoundManager;
 class AGridManager;
 class ACommandManager;
+class UStatComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTokenChanged, float, NewToken);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnExpChanged, int32, NewLevel, float, NewExp, float, NewMaxExp);
@@ -110,6 +111,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	float GetUpgradeBonus(FGameplayTag StatTag);
+
+	// 공격자의 공격 타입(물리/마법)에 맞는 공격력 업그레이드 보너스(유효하지 않으면 0).
+	float GetAttackDamageBonus(const UStatComponent* AttackerStat);
 
 	UFUNCTION(BlueprintCallable)
 	void AddTowerToken(float Amount);

@@ -51,19 +51,8 @@ void UAreaAttackComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 		IgnoreActors,
 		OverlappedActors);
 
-	float DamageBonus = 0.f;
-	if (GameMode)
-	{
-		if (TowerStat->AttackTypes.HasTag(TDTags::AttackTypes_Physical))
-		{
-			DamageBonus = GameMode->GetUpgradeBonus(TDTags::Upgrade_AttackDamage_Physical);
-		}
-		else if (TowerStat->AttackTypes.HasTag(TDTags::AttackTypes_Magic))
-		{
-			DamageBonus = GameMode->GetUpgradeBonus(TDTags::Upgrade_AttackDamage_Magic);
-		}
-	}
-	if (!FMath::IsFinite(DamageBonus)) DamageBonus = 0.f;
+	// 물리/마법 공격 타입에 따른 업그레이드 보너스 적용.
+	const float DamageBonus = GameMode ? GameMode->GetAttackDamageBonus(TowerStat) : 0.f;
 
 	const float BaseDamage = TowerStat->GetStat(TDTags::Stat_AttackDamage);
 	const float FinalDamage = FMath::IsFinite(BaseDamage)

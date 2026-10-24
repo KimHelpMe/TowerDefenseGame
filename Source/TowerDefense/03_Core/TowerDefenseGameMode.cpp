@@ -292,3 +292,19 @@ float ATowerDefenseGameMode::GetUpgradeBonus(FGameplayTag StatTag)
 	UE_LOG(LogTowerDefense, Verbose, TEXT("GetUpgradeBonus: %s = %f"), *StatTag.ToString(), TotalBonus);
 	return TotalBonus;
 }
+
+float ATowerDefenseGameMode::GetAttackDamageBonus(const UStatComponent* AttackerStat)
+{
+	if (!AttackerStat) return 0.f;
+
+	float Bonus = 0.f;
+	if (AttackerStat->AttackTypes.HasTag(TDTags::AttackTypes_Physical))
+	{
+		Bonus = GetUpgradeBonus(TDTags::Upgrade_AttackDamage_Physical);
+	}
+	else if (AttackerStat->AttackTypes.HasTag(TDTags::AttackTypes_Magic))
+	{
+		Bonus = GetUpgradeBonus(TDTags::Upgrade_AttackDamage_Magic);
+	}
+	return FMath::IsFinite(Bonus) ? Bonus : 0.f;
+}

@@ -1,29 +1,21 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "BaseTower.h"
+#include "TargetingTower.h"
 #include "MagicTower.generated.h"
 
-
-class AEnemy;
-class UAttackTypeComponent;
 class UManaComponent;
 
+// 마나가 가득 차면 사거리 안의 적을 공격하는 타워.
+// 대상 추적·공격 실행은 ATargetingTower가 담당한다.
 UCLASS()
-class TOWERDEFENSE_API AMagicTower : public ABaseTower
+class TOWERDEFENSE_API AMagicTower : public ATargetingTower
 {
 	GENERATED_BODY()
-	
 
 public:
 
 	AMagicTower();
-
-	UPROPERTY(EditAnywhere)
-	TArray<AEnemy*> CurrentTargets;
-
-	UPROPERTY(EditAnywhere)
-	UAttackTypeComponent* AttackTypeComponent;
 
 	UPROPERTY(EditAnywhere)
 	UManaComponent* ManaComponent;
@@ -35,22 +27,4 @@ public:
 	// 델리게이트 수신용
 	UFUNCTION()
 	void OnManaFull();
-
-	virtual void Attack_Implementation() override;
-
-	UFUNCTION()
-	void OnEnemyEnter(UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult);
-
-	UFUNCTION()
-	void OnEnemyExit(UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex);
-
-
 };
