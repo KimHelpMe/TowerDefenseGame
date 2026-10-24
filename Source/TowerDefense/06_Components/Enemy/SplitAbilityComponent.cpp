@@ -1,4 +1,4 @@
-
+ï»¿
 #include "SplitAbilityComponent.h"
 #include "TowerDefenseLog.h"
 #include "Enemy.h"
@@ -13,26 +13,26 @@ void USplitAbilityComponent::OnEnemyDeathAbility()
 
 	if (!SplitEnemyClass) return;
 
-  // Owner¸¦ AEnemy·Î Ä³½ºÆÃ
+  // Ownerë¥¼ AEnemyë¡œ ìºìŠ¤íŒ…
 	AEnemy* OwnerEnemy = Cast<AEnemy>(GetOwner());
 	if (!OwnerEnemy) return;
 
-	// SplitCount ¸¸Å­ ¹İº¹
+	// SplitCount ë§Œí¼ ë°˜ë³µ
 	for (int32 i = 0; i < SplitCount; i++)
 	{
-		// ½ºÆù À§Ä¡¿¡ ·£´ı ¿ÀÇÁ¼Â Ãß°¡
+		// ìŠ¤í° ìœ„ì¹˜ì— ëœë¤ ì˜¤í”„ì…‹ ì¶”ê°€
 		FVector SpawnLocation = OwnerEnemy->GetActorLocation();
 		SpawnLocation.X += FMath::RandRange(-50.f, 50.f);
 		SpawnLocation.Y += FMath::RandRange(-50.f, 50.f);
 
-		// Owner À§Ä¡¿¡ ½ºÆù
+		// Owner ìœ„ì¹˜ì— ìŠ¤í°
 		AEnemy* SpawnedEnemy = GetWorld()->SpawnActor<AEnemy>(
 			SplitEnemyClass,
 			SpawnLocation,
 			FRotator::ZeroRotator
 		);
 
-		// splinePath¿Í CurrentSplinePoint Àü´Ş
+		// splinePathì™€ CurrentSplinePoint ì „ë‹¬
 		if (SpawnedEnemy)
 		{
 			SpawnedEnemy->splinePath = OwnerEnemy->splinePath;

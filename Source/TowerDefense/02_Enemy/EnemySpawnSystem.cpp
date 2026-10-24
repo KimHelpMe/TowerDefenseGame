@@ -1,4 +1,4 @@
-#include "EnemySpawnSystem.h"
+Ôªø#include "EnemySpawnSystem.h"
 #include "Enemy.h"
 #include "EnemySplinePath.h"
 
@@ -8,7 +8,7 @@ AEnemySpawnSystem::AEnemySpawnSystem()
  	
 	PrimaryActorTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 
-	// ±‚∫ª∞™ º≥¡§
+	// Í∏∞Î≥∏Í∞í ÏÑ§Ï†ï
 	SpawnDelay = 1.0f;
 	SpawnCount = 50;
 	CurrentSpawnCount = 0;
@@ -31,15 +31,15 @@ void AEnemySpawnSystem::Tick(float DeltaTime)
 
 void AEnemySpawnSystem::SpawnEnemy()
 {
-	// ¿Ø»ø«—¡ˆ »Æ¿Œ«œ±‚.
+	// Ïú†Ìö®ÌïúÏßÄ ÌôïÏù∏ÌïòÍ∏∞.
 	if (!EnemyClass) return;
 	if (!splinePath) return;
 
-	// Ω∫∆˘ ¿ßƒ°, »∏¿¸∞™
+	// Ïä§Ìè∞ ÏúÑÏπò, ÌöåÏ†ÑÍ∞í
 	FVector SpawnLocation = splinePath->splineComponent->GetLocationAtDistanceAlongSpline(0, ESplineCoordinateSpace::World);
 	FRotator SpawnRotation = splinePath->splineComponent->GetRotationAtDistanceAlongSpline(0, ESplineCoordinateSpace::World);
 
-	//æ◊≈Õ Ω∫∆˘
+	//Ïï°ÌÑ∞ Ïä§Ìè∞
 	AEnemy* spawnedEnemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnLocation, SpawnRotation);
 	if (spawnedEnemy)
 	{
@@ -55,7 +55,7 @@ void AEnemySpawnSystem::SpawnEnemy()
 
 void AEnemySpawnSystem::StartSpawn()
 {
-	// ≈∏¿Ã∏” º≥¡§
+	// ÌÉÄÏù¥Î®∏ ÏÑ§Ï†ï
 	GetWorldTimerManager().SetTimer(
 		SpawnTimerHandle,
 		this,

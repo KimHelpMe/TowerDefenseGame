@@ -30,11 +30,11 @@ public:
 
 public:
 	
-	// ���� �ߵ�.
+	// 버프 발동(지속시간 동안 범위 내 대상에 적용).
 	UFUNCTION(BlueprintCallable)
 	void ActivateBuff();
 
-	// ���� ����.
+	// 버프 해제 후 재사용 대기 시작.
 	UFUNCTION()
 	void DeactivateBuff();
 

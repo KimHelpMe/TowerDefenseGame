@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -17,19 +17,19 @@ public:
 
 	AEnemySpawnSystem();
 
-	//½ºÆùÇÒ Å¬·¡½º ÁöÁ¤
+	//ìŠ¤í°í•  í´ë˜ìŠ¤ ì§€ì •
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AEnemy> EnemyClass;
 
-	//½ºÆù À§Ä¡ ÁÂÇ¥
+	//ìŠ¤í° ìœ„ì¹˜ ì¢Œí‘œ
 	UPROPERTY(EditAnywhere)
 	AEnemySplinePath* splinePath;
 
-	//½ºÆù °£°İ
+	//ìŠ¤í° ê°„ê²©
 	UPROPERTY(EditAnywhere)
 	float SpawnDelay;
 
-	// ¶ó¿îµå ´ç ½ºÆùÇÒ ¼ö
+	// ë¼ìš´ë“œ ë‹¹ ìŠ¤í°í•  ìˆ˜
 	UPROPERTY(EditAnywhere)
 	int32 SpawnCount;
 
@@ -55,6 +55,6 @@ public:
 
 private:
 
-	//Å¸ÀÌ¸Ó Á¦¾î¿¡ ÇÊ¿äÇÑ ÇÚµé
+	//íƒ€ì´ë¨¸ ì œì–´ì— í•„ìš”í•œ í•¸ë“¤
 	FTimerHandle SpawnTimerHandle;
 };

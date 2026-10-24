@@ -1,4 +1,4 @@
-// Àû ºĞ¿­ ±â´É
+ï»¿// ì  ë¶„ì—´ ê¸°ëŠ¥
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,7 +17,7 @@ public:
 
 	USplitAbilityComponent();
 
-	// ºĞ¿­ ½Ã »ı¼³µÉ Àû ¼ö
+	// ë¶„ì—´ ì‹œ ìƒì„¤ë  ì  ìˆ˜
 	UPROPERTY(EditAnywhere)
 	int32 SplitCount;
 	// Distance (cm) between split children along the spline.
