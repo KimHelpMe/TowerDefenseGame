@@ -61,6 +61,14 @@ public:
     UFUNCTION()
 	void UpdateRoundTick();
 
+	// True when the current round is the last one (MaxRound reached or no next round data).
+	UFUNCTION(BlueprintCallable)
+	bool IsFinalRound() const;
+
+	// Enemies on the map that are not already dying.
+	UFUNCTION(BlueprintCallable)
+	int32 GetAliveEnemyCount() const;
+
 	FTimerHandle RoundTimerHandle;
 
 public:

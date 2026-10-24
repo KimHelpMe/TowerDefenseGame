@@ -42,35 +42,54 @@ void ARoundManager::UpdateRoundTick()
 	}
 
 	CurrentTimer = FMath::Max(0.f, CurrentTimer - 1.f);
+
+	// Final round: victory once it has finished spawning and the map has no enemies left
+	// (including enemies left over from earlier, skipped rounds).
+	if (CurrentRound > 0 && IsFinalRound())
+	{
+		if (bRoundSpawnComplete && GetAliveEnemyCount() == 0)
+		{
+			GetWorldTimerManager().ClearTimer(RoundTimerHandle);
+			GameMode->TriggerVictory();
+		}
+		return;
+	}
+
 	if (CurrentTimer > 0.f) return;
 
+	// Rounds advance on timer end or skip even if enemies remain (design: clear several rounds at once).
+	// Starting the next round replaces the pending spawn entries, so wait until this round has finished spawning.
 	if (CurrentRound > 0)
 	{
 		if (!bRoundSpawnComplete) return;
 
-		TArray<AActor*> RemainingEnemies;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemy::StaticClass(), RemainingEnemies);
-		if (!RemainingEnemies.IsEmpty()) return;
-
+		// Only the token reward is given per round; gold and EXP come from each kill.
 		const FString CurrentRowKey = FString::Printf(TEXT("Round_%02d"), CurrentRound);
 		if (FRoundDataRow* Row = RoundDataTable->FindRow<FRoundDataRow>(FName(*CurrentRowKey), TEXT("")))
 		{
-			GameMode->Gold += Row->GoldReward;
 			GameMode->AddTowerToken(Row->TowerTokenReward);
-			GameMode->AddExp(Row->ExpReward);
-		}
-
-		// Last round cleared (MaxRound reached or no more round data): victory.
-		const FString NextRowKey = FString::Printf(TEXT("Round_%02d"), CurrentRound + 1);
-		if (CurrentRound >= MaxRound || !RoundDataTable->FindRow<FRoundDataRow>(FName(*NextRowKey), TEXT("")))
-		{
-			GetWorldTimerManager().ClearTimer(RoundTimerHandle);
-			GameMode->TriggerVictory();
-			return;
 		}
 	}
 
 	StartRound(CurrentRound + 1);
+}
+
+bool ARoundManager::IsFinalRound() const
+{
+	if (CurrentRound >= MaxRound) return true;
+	const FString NextRowKey = FString::Printf(TEXT("Round_%02d"), CurrentRound + 1);
+	return !RoundDataTable || !RoundDataTable->FindRow<FRoundDataRow>(FName(*NextRowKey), TEXT(""));
+}
+
+int32 ARoundManager::GetAliveEnemyCount() const
+{
+	TArray<AActor*> Enemies;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemy::StaticClass(), Enemies);
+	return Enemies.FilterByPredicate([](const AActor* Actor)
+	{
+		const AEnemy* Enemy = Cast<AEnemy>(Actor);
+		return IsValid(Enemy) && !Enemy->bIsDead;
+	}).Num();
 }
 
 void ARoundManager::StopRounds()
