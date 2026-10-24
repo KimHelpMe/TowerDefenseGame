@@ -16,10 +16,10 @@ struct FRoundEnemyEntry
 	TSubclassOf<AEnemy> EnemyClass;
 
 	UPROPERTY(EditAnywhere)
-	int32 SpawnCount;
+	int32 SpawnCount = 1;
 
 	UPROPERTY(EditAnywhere)
-	float SpawnDelay;
+	float SpawnDelay = 1.f;
 
 };
 
@@ -36,11 +36,11 @@ public:
 	// Reward.
 
 	UPROPERTY(EditAnywhere)
-	float GoldReward;
+	float GoldReward = 0.f;
 
 	UPROPERTY(EditAnywhere)
-	float TowerTokenReward;
+	float TowerTokenReward = 0.f;
 
 	UPROPERTY(EditAnywhere)
-	float ExpReward;
+	float ExpReward = 0.f;
 };

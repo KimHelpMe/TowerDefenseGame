@@ -39,10 +39,10 @@ public:
 	TMap<FGameplayTag, float> ElementResistRate;
 
 	UPROPERTY(EditAnywhere)
-	float GoldReward;
+	float GoldReward = 0.f;
 
 	UPROPERTY(EditAnywhere)
-	float ExpReward;
+	float ExpReward = 0.f;
 
 	// 외형
 	UPROPERTY(EditAnywhere)

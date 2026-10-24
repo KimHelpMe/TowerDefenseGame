@@ -16,11 +16,11 @@ public:
 
 
 	UPROPERTY(EditAnywhere)
-	float PhysicalMultiplier;
+	float PhysicalMultiplier = 1.f;
 
 	UPROPERTY(EditAnywhere)
-	float MagicMultiplier;
+	float MagicMultiplier = 1.f;
 
 	UPROPERTY(EditAnywhere)
-	float ChaosMultiplier;
+	float ChaosMultiplier = 1.f;
 };
