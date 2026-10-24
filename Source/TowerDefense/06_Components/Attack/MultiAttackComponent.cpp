@@ -9,7 +9,7 @@ UMultiAttackComponent::UMultiAttackComponent()
 	MaxTargetCount = 2;
 }
 
-void UMultiAttackComponent::ExecuteAttack(TArray<AEnemy*> Targets)
+void UMultiAttackComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 {
 
 	UE_LOG(LogTowerDefense, Verbose, TEXT("MultiAttack called, Targets: %d, MaxTargetCount: %d"), Targets.Num(), MaxTargetCount);

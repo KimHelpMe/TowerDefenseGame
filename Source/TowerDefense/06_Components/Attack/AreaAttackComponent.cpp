@@ -13,7 +13,7 @@ UAreaAttackComponent::UAreaAttackComponent()
 {
 }
 
-void UAreaAttackComponent::ExecuteAttack(TArray<AEnemy*> Targets)
+void UAreaAttackComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 {
 	AEnemy* PrimaryTarget = nullptr;
 	for (AEnemy* Target : Targets)
