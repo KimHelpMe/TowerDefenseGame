@@ -62,31 +62,37 @@ void UActiveBuffComponent::DeactivateBuff()
 void UActiveBuffComponent::ApplyBuff()
 {
 	const FName SourceKey = GetBuffSourceKey();
+	TArray<AActor*> CurrentTargets = GetTargetsInRange();
+
+	// 범위를 벗어난 대상만 버프 제거.
 	for (AActor* Target : PreviousTargets)
 	{
-		if (!IsValid(Target)) continue;
+		if (!IsValid(Target) || CurrentTargets.Contains(Target)) continue;
 		if (UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>())
 		{
 			StatComp->RemoveBuffByKey(SourceKey);
 		}
 	}
 
-	TArray<AActor*> CurrentTargets = GetTargetsInRange();
+	TArray<FBuffEffect> NewBuffs;
+	for (const FBuffEffect& Effect : BuffEffects)
+	{
+		FBuffEffect NewBuff;
+		NewBuff.StatTag = Effect.StatTag;
+		NewBuff.Value = Effect.Value;
+		NewBuff.ValueType = Effect.ValueType;
+		NewBuff.Source = GetOwner();
+		NewBuff.SourceKey = SourceKey;
+		NewBuffs.Add(NewBuff);
+	}
+
+	// 범위 안 대상은 교체하고 재계산은 대상당 한 번만.
 	for (AActor* Target : CurrentTargets)
 	{
 		if (!IsValid(Target)) continue;
-		UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>();
-		if (!StatComp) continue;
-
-		for (const FBuffEffect& Effect : BuffEffects)
+		if (UStatComponent* StatComp = Target->GetComponentByClass<UStatComponent>())
 		{
-			FBuffEffect NewBuff;
-			NewBuff.StatTag = Effect.StatTag;
-			NewBuff.Value = Effect.Value;
-			NewBuff.ValueType = Effect.ValueType;
-			NewBuff.Source = GetOwner();
-			NewBuff.SourceKey = SourceKey;
-			StatComp->ModifyStat(NewBuff);
+			StatComp->ReplaceBuffsByKey(SourceKey, NewBuffs);
 		}
 	}
 	PreviousTargets = CurrentTargets;

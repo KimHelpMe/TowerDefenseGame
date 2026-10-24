@@ -70,6 +70,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void RemoveBuffByKey(FName SourceKey);
 
+	// SourceKey 버프를 NewBuffs로 교체한다. 이미 같으면 아무것도 하지 않고, 바뀌면 재계산을 한 번만 한다.
+	void ReplaceBuffsByKey(FName SourceKey, const TArray<FBuffEffect>& NewBuffs);
+
 public:
 
 	static FGameplayTag GetTag(const FString& TagName)
