@@ -21,6 +21,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UNiagaraSystem* AreaEffect = nullptr;
 
+	// 첫 대상 주변 폭발 반경(cm). 타워 공격 사거리와 별개.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0"))
+	float ExplosionRadius = 200.f;
+
 public:
 
 	virtual void ExecuteAttack(TArray<AEnemy*>Targets) override;

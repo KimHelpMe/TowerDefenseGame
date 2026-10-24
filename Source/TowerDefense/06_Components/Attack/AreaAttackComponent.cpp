@@ -1,6 +1,7 @@
 ﻿
 #include "AreaAttackComponent.h"
 #include "Enemy.h"
+#include "AirAbilityComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "TowerStatComponent.h"
@@ -29,14 +30,8 @@ void UAreaAttackComponent::ExecuteAttack(TArray<AEnemy*> Targets)
 	if (!IsValid(TowerStat) || !GetWorld()) return;
 
 	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	const float BaseRadius = TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackRange"));
-	const float AttackRangeBonus = GameMode
-		? GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.AttackRange"))
-		: 0.f;
-	const float SafeAttackRangeBonus = FMath::IsFinite(AttackRangeBonus) ? AttackRangeBonus : 0.f;
-	const float AttackRadius = FMath::IsFinite(BaseRadius)
-		? FMath::Max(0.f, BaseRadius * (1.f + SafeAttackRangeBonus))
-		: 0.f;
+	// 폭발 반경은 공격 사거리와 별도 값을 사용(사거리 전체를 덮지 않도록).
+	const float AttackRadius = FMath::IsFinite(ExplosionRadius) ? FMath::Max(0.f, ExplosionRadius) : 0.f;
 	const FVector Center = PrimaryTarget->GetActorLocation();
 	TArray<AActor*> OverlappedActors;
 
@@ -73,13 +68,18 @@ void UAreaAttackComponent::ExecuteAttack(TArray<AEnemy*> Targets)
 	const float FinalDamage = FMath::IsFinite(BaseDamage)
 		? FMath::Max(0.f, BaseDamage * (1.f + DamageBonus))
 		: 0.f;
+	// 타워가 공격할 수 있는 대상(공중/지상)만 폭발 피해를 받는다.
+	const bool bCanHitAir = TowerStat->Abilities.HasTag(UStatComponent::GetTag("Ability.AttackAir"));
+	const bool bCanHitGround = TowerStat->Abilities.HasTag(UStatComponent::GetTag("Ability.AttackGround"));
 	for (AActor* Actor : OverlappedActors)
 	{
 		AEnemy* Enemy = Cast<AEnemy>(Actor);
-		if (IsValid(Enemy) && !Enemy->bIsDead)
-		{
-			Enemy->ReceiveDamage(FinalDamage, TowerStat);
-		}
+		if (!IsValid(Enemy) || Enemy->bIsDead) continue;
+
+		const bool bIsAir = Enemy->GetComponentByClass<UAirAbilityComponent>() != nullptr;
+		if (bIsAir ? !bCanHitAir : !bCanHitGround) continue;
+
+		Enemy->ReceiveDamage(FinalDamage, TowerStat);
 	}
 
 	if (AreaEffect && OverlappedActors.Num() > 0)
