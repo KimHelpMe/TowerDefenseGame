@@ -56,3 +56,11 @@ void ATowerSlot::GiveUpGacha()
 {
 }
 
+void ATowerSlot::ResetGachaState()
+{
+	const ATowerSlot* Defaults = GetClass()->GetDefaultObject<ATowerSlot>();
+	SavedRollResult.Reset();
+	ReloadCount = Defaults->ReloadCount;
+	bCanAbandon = Defaults->bCanAbandon;
+}
+

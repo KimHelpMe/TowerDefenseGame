@@ -174,6 +174,7 @@ void AEpicTowerManager::FuseEpicTower(
 			{
 				OwnerSlot->InstalledTower = nullptr;
 				OwnerSlot->bIsOccupied = false;
+				OwnerSlot->ResetGachaState();
 				if (IsValid(OwnerSlot->TowerSlotMesh)) OwnerSlot->TowerSlotMesh->SetVisibility(true);
 			}
 

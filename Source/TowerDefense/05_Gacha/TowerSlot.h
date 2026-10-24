@@ -66,6 +66,10 @@ public:
 
 	UFUNCTION()
 	void GiveUpGacha();
+
+	// 뽑기 결과·리롤 횟수를 슬롯 클래스 기본값으로 되돌림(타워 선택 후, 슬롯이 비워질 때).
+	UFUNCTION()
+	void ResetGachaState();
 };
 
 
