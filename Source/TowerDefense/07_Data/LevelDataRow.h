@@ -12,8 +12,8 @@ struct FLevelDataRow : public FTableRowBase
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float MaxExp;
+    float MaxExp = 0.f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float TokenReward;
+    float TokenReward = 0.f;
 };

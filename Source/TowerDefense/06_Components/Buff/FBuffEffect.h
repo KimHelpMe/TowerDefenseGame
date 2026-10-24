@@ -19,10 +19,10 @@ struct FBuffEffect
     FGameplayTag StatTag;
 
     UPROPERTY(EditAnywhere)
-    float Value;
+    float Value = 0.f;
 
     UPROPERTY(EditAnywhere)
-    EBuffValueType ValueType;
+    EBuffValueType ValueType = EBuffValueType::Flat;
 
     UPROPERTY()
     AActor* Source = nullptr;

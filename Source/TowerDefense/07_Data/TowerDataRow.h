@@ -28,25 +28,25 @@ struct FBuffConfig
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
-	EBuffComponentType BuffType;
+	EBuffComponentType BuffType = EBuffComponentType::None;
 
 	UPROPERTY(EditAnywhere)
 	TArray<FBuffEffect> BuffEffects;
 
 	UPROPERTY(EditAnywhere)
-	EBuffTarget BuffTarget;
+	EBuffTarget BuffTarget = EBuffTarget::AllyTower;
 
 	UPROPERTY(EditAnywhere)
-	float BuffInterval;
+	float BuffInterval = 0.f;
 	
 	UPROPERTY(EditAnywhere)
-	float BuffDuration;
+	float BuffDuration = 0.f;
 	
 	UPROPERTY(EditAnywhere)
-	float BuffCooldown;
+	float BuffCooldown = 0.f;
 	
 	UPROPERTY(EditAnywhere)
-	float BuffRadius;
+	float BuffRadius = 0.f;
 
 
 };

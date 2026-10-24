@@ -23,7 +23,7 @@ struct FEpicTowerConditionEntry
 	TSubclassOf<AActor> TowerClass = nullptr;
 
 	UPROPERTY(EditAnywhere)
-	int32 RequiredLevel;
+	int32 RequiredLevel = 1;
 };
 
 USTRUCT(BlueprintType)
