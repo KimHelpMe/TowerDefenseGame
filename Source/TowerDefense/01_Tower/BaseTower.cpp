@@ -1,4 +1,5 @@
 #include "BaseTower.h"
+#include "TowerDefenseTags.h"
 #include "TowerSlot.h"
 #include "TowerStatComponent.h"
 #include "TowerInfoWidget.h"
@@ -69,7 +70,7 @@ void ABaseTower::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
 	if (TowerStat && TowerAttackRangeComponent)
 	{
-		TowerAttackRangeComponent->SetSphereRadius(TowerStat->GetStat(FGameplayTag::RequestGameplayTag("Stat.AttackRange")));
+		TowerAttackRangeComponent->SetSphereRadius(TowerStat->GetStat(TDTags::Stat_AttackRange));
 	}
 }
 #endif

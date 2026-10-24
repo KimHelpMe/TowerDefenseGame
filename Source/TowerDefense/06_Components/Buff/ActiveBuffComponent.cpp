@@ -1,5 +1,6 @@
 ﻿
 #include "ActiveBuffComponent.h"
+#include "TowerDefenseTags.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerDefenseGameMode.h"
 #include "StatComponent.h"
@@ -24,7 +25,7 @@ void UActiveBuffComponent::ActivateBuff()
 	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(
 		UGameplayStatics::GetGameMode(World));
 	const float DurationBonus = GameMode ? GameMode->GetUpgradeBonus(
-		FGameplayTag::RequestGameplayTag("Upgrade.BuffDuration")) : 0.f;
+		TDTags::Upgrade_BuffDuration) : 0.f;
 	const float FinalDuration = FMath::Max(0.1f, Duration + DurationBonus);
 
 	World->GetTimerManager().SetTimer(

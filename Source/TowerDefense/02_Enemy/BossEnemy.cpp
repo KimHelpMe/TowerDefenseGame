@@ -1,6 +1,7 @@
 ﻿
 
 #include "BossEnemy.h"
+#include "TowerDefenseTags.h"
 #include "BossAbilityComponent.h"
 #include "EnemyStatComponent.h"
 #include "BossNotifyWidget.h"
@@ -65,8 +66,8 @@ void ABossEnemy::BeginPlay()
 	if (BossHPBarWidget)
 	{
 		const UEnemyStatComponent* BossStat = GetComponentByClass<UEnemyStatComponent>();
-		const float MaxHP = BossStat ? BossStat->GetStat(UStatComponent::GetTag("Stat.MaxHP")) : 0.f;
-		const float HP = BossStat ? BossStat->GetStat(UStatComponent::GetTag("Stat.HP")) : 0.f;
+		const float MaxHP = BossStat ? BossStat->GetStat(TDTags::Stat_MaxHP) : 0.f;
+		const float HP = BossStat ? BossStat->GetStat(TDTags::Stat_HP) : 0.f;
 		const float HPPercent = FMath::IsFinite(MaxHP) && MaxHP > KINDA_SMALL_NUMBER
 			? FMath::Clamp(HP / MaxHP * 100.f, 0.f, 100.f)
 			: 100.f;
@@ -89,10 +90,10 @@ void ABossEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 	UEnemyStatComponent* BossStat = GetComponentByClass<UEnemyStatComponent>();
 	if (!IsValid(BossStat) || !IsValid(BossAbilityComponent)) return;
 
-	const float MaxHP = BossStat->GetStat(UStatComponent::GetTag("Stat.MaxHP"));
+	const float MaxHP = BossStat->GetStat(TDTags::Stat_MaxHP);
 	if (!FMath::IsFinite(MaxHP) || MaxHP <= KINDA_SMALL_NUMBER) return;
 
-	const float HP = BossStat->GetStat(UStatComponent::GetTag("Stat.HP"));
+	const float HP = BossStat->GetStat(TDTags::Stat_HP);
 	const float HPPercent = FMath::Clamp((HP / MaxHP) * 100.f, 0.f, 100.f);
 
 	// 한 번에 50% 초과 → 10% 이하로 떨어져도 3페이즈까지 순서대로 진입.

@@ -1,4 +1,5 @@
 #include "TowerDefenseGameMode.h"
+#include "TowerDefenseTags.h"
 #include "TowerDefenseLog.h"
 #include "MainMenuWidget.h"
 #include "BattleResultWidget.h"
@@ -240,9 +241,9 @@ void ATowerDefenseGameMode::ApplyUpgrade(FBuffEffect Effect)
 
 	InGameUpgrades.Add(Effect);
 
-	const FGameplayTag AttackRangeTag = UStatComponent::GetTag("Upgrade.AttackRange");
-	const FGameplayTag AttackSpeedTag = UStatComponent::GetTag("Upgrade.AttackSpeed");
-	const FGameplayTag ManaRegenTag = UStatComponent::GetTag("Upgrade.ManaRegen");
+	const FGameplayTag AttackRangeTag = TDTags::Upgrade_AttackRange;
+	const FGameplayTag AttackSpeedTag = TDTags::Upgrade_AttackSpeed;
+	const FGameplayTag ManaRegenTag = TDTags::Upgrade_ManaRegen;
 	if (Effect.StatTag != AttackRangeTag && Effect.StatTag != AttackSpeedTag && Effect.StatTag != ManaRegenTag) return;
 	if (!GetWorld()) return;
 

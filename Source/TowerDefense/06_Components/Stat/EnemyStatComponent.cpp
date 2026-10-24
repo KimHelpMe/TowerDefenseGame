@@ -1,6 +1,7 @@
 ﻿
 
 #include "EnemyStatComponent.h"
+#include "TowerDefenseTags.h"
 #include "EnemyDataRow.h"
 #include "AirAbilityComponent.h"
 #include "Enemy.h"
@@ -11,12 +12,12 @@ UEnemyStatComponent::UEnemyStatComponent()
     EnemyGrade = TEXT("None");
 
     // 기본 스탯 설정
-    BaseStats.Add(FGameplayTag::RequestGameplayTag("Stat.HP"), 100.f);
-    BaseStats.Add(FGameplayTag::RequestGameplayTag("Stat.MaxHP"), 100.f);
-    BaseStats.Add(FGameplayTag::RequestGameplayTag("Stat.MoveSpeed"), 100.f);
-    BaseStats.Add(FGameplayTag::RequestGameplayTag("Stat.AttackDamage"), 10.f);
-    BaseStats.Add(FGameplayTag::RequestGameplayTag("Stat.AttackSpeed"), 1.f);
-    BaseStats.Add(FGameplayTag::RequestGameplayTag("Stat.Defense"), 0.f);
+    BaseStats.Add(TDTags::Stat_HP, 100.f);
+    BaseStats.Add(TDTags::Stat_MaxHP, 100.f);
+    BaseStats.Add(TDTags::Stat_MoveSpeed, 100.f);
+    BaseStats.Add(TDTags::Stat_AttackDamage, 10.f);
+    BaseStats.Add(TDTags::Stat_AttackSpeed, 1.f);
+    BaseStats.Add(TDTags::Stat_Defense, 0.f);
 }
 
 void UEnemyStatComponent::BeginPlay()
@@ -46,8 +47,8 @@ void UEnemyStatComponent::InitFromDataTable()
         // 스탯 적용.
         // SetBaseStat은 매번 HP를 MaxHP로 클램프하므로, 행 순서(HP가 MaxHP보다 먼저)에 따라
         // HP가 기본 MaxHP(100)로 잘리지 않도록 모두 넣은 뒤 한 번만 재계산한다.
-        const FGameplayTag HPTag = GetTag("Stat.HP");
-        const FGameplayTag MaxHPTag = GetTag("Stat.MaxHP");
+        const FGameplayTag HPTag = TDTags::Stat_HP;
+        const FGameplayTag MaxHPTag = TDTags::Stat_MaxHP;
         bool bRowHasHP = false;
         bool bRowHasMaxHP = false;
         for (const FBuffEffect& Stat : Row->Stats)

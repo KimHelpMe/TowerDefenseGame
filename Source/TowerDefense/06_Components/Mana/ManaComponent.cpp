@@ -1,4 +1,5 @@
 ﻿#include "ManaComponent.h"
+#include "TowerDefenseTags.h"
 #include "TowerDefenseLog.h"
 #include "TowerDefenseGameMode.h"
 #include "StatComponent.h"
@@ -37,7 +38,7 @@ void UManaComponent::RefreshRegenTimer()
 	const float ManaRegenBonus = [&]()
 	{
 		ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-		return GameMode ? GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.ManaRegen")) : 0.f;
+		return GameMode ? GameMode->GetUpgradeBonus(TDTags::Upgrade_ManaRegen) : 0.f;
 	}();
 	const float SafeManaRegenBonus = FMath::IsFinite(ManaRegenBonus) ? ManaRegenBonus : 0.f;
 	const float SafeBaseInterval = FMath::IsFinite(ManaRegenInterval) && ManaRegenInterval > 0.f

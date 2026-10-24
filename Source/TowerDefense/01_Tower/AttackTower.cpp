@@ -1,4 +1,5 @@
 ﻿#include "AttackTower.h"
+#include "TowerDefenseTags.h"
 #include "Projectile.h"
 #include "Enemy.h"
 #include "AttackTypeComponent.h"
@@ -30,8 +31,8 @@ void AAttackTower::BeginPlay()
 	{
 		UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
 		ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-		const float BaseRange = TowerStat ? TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackRange")) : 500.f;
-		const float RangeBonus = GameMode ? GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.AttackRange")) : 0.f;
+		const float BaseRange = TowerStat ? TowerStat->GetStat(TDTags::Stat_AttackRange) : 500.f;
+		const float RangeBonus = GameMode ? GameMode->GetUpgradeBonus(TDTags::Upgrade_AttackRange) : 0.f;
 		const float SafeRangeBonus = FMath::IsFinite(RangeBonus) ? RangeBonus : 0.f;
 		const float FinalRange = FMath::IsFinite(BaseRange) ? FMath::Max(0.f, BaseRange * (1.f + SafeRangeBonus)) : 500.f;
 		TowerAttackRangeComponent->SetSphereRadius(FinalRange);
@@ -46,8 +47,8 @@ void AAttackTower::RefreshAttackTimer()
 
 	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
 	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	const float BaseAttackSpeed = TowerStat ? TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackSpeed")) : 1.f;
-	const float AttackSpeedBonus = GameMode ? GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.AttackSpeed")) : 0.f;
+	const float BaseAttackSpeed = TowerStat ? TowerStat->GetStat(TDTags::Stat_AttackSpeed) : 1.f;
+	const float AttackSpeedBonus = GameMode ? GameMode->GetUpgradeBonus(TDTags::Upgrade_AttackSpeed) : 0.f;
 	const float SafeAttackSpeedBonus = FMath::IsFinite(AttackSpeedBonus) ? AttackSpeedBonus : 0.f;
 	const float FinalAttackSpeed = FMath::IsFinite(BaseAttackSpeed)
 		? FMath::Max(0.01f, BaseAttackSpeed * (1.f - SafeAttackSpeedBonus))
@@ -102,7 +103,7 @@ void AAttackTower::OnEnemyEnter(UPrimitiveComponent* OverlappedComp, AActor* Oth
 	if (AirComp)
 	{
 		if (TowerStat && TowerStat->Abilities.HasTag(
-			UStatComponent::GetTag(("Ability.AttackAir"))))
+			TDTags::Ability_AttackAir))
 		{
 			CurrentTargets.Add(enemy);
 			SetTurretTarget(CurrentTargets[0]);
@@ -112,7 +113,7 @@ void AAttackTower::OnEnemyEnter(UPrimitiveComponent* OverlappedComp, AActor* Oth
 	else
 	{
 		if (TowerStat && TowerStat->Abilities.HasTag(
-			UStatComponent::GetTag(("Ability.AttackGround"))))
+			TDTags::Ability_AttackGround))
 		{
 			CurrentTargets.Add(enemy);
 			SetTurretTarget(CurrentTargets[0]);

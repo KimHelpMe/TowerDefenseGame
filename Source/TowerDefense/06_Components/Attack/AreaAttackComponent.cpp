@@ -1,5 +1,6 @@
 ﻿
 #include "AreaAttackComponent.h"
+#include "TowerDefenseTags.h"
 #include "Enemy.h"
 #include "AirAbilityComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -53,24 +54,24 @@ void UAreaAttackComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 	float DamageBonus = 0.f;
 	if (GameMode)
 	{
-		if (TowerStat->AttackTypes.HasTag(UStatComponent::GetTag("AttackTypes.Physical")))
+		if (TowerStat->AttackTypes.HasTag(TDTags::AttackTypes_Physical))
 		{
-			DamageBonus = GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.AttackDamage.Physical"));
+			DamageBonus = GameMode->GetUpgradeBonus(TDTags::Upgrade_AttackDamage_Physical);
 		}
-		else if (TowerStat->AttackTypes.HasTag(UStatComponent::GetTag("AttackTypes.Magic")))
+		else if (TowerStat->AttackTypes.HasTag(TDTags::AttackTypes_Magic))
 		{
-			DamageBonus = GameMode->GetUpgradeBonus(UStatComponent::GetTag("Upgrade.AttackDamage.Magic"));
+			DamageBonus = GameMode->GetUpgradeBonus(TDTags::Upgrade_AttackDamage_Magic);
 		}
 	}
 	if (!FMath::IsFinite(DamageBonus)) DamageBonus = 0.f;
 
-	const float BaseDamage = TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackDamage"));
+	const float BaseDamage = TowerStat->GetStat(TDTags::Stat_AttackDamage);
 	const float FinalDamage = FMath::IsFinite(BaseDamage)
 		? FMath::Max(0.f, BaseDamage * (1.f + DamageBonus))
 		: 0.f;
 	// 타워가 공격할 수 있는 대상(공중/지상)만 폭발 피해를 받는다.
-	const bool bCanHitAir = TowerStat->Abilities.HasTag(UStatComponent::GetTag("Ability.AttackAir"));
-	const bool bCanHitGround = TowerStat->Abilities.HasTag(UStatComponent::GetTag("Ability.AttackGround"));
+	const bool bCanHitAir = TowerStat->Abilities.HasTag(TDTags::Ability_AttackAir);
+	const bool bCanHitGround = TowerStat->Abilities.HasTag(TDTags::Ability_AttackGround);
 	for (AActor* Actor : OverlappedActors)
 	{
 		AEnemy* Enemy = Cast<AEnemy>(Actor);

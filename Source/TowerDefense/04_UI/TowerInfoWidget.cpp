@@ -1,4 +1,5 @@
 #include "TowerInfoWidget.h"
+#include "TowerDefenseTags.h"
 #include "TowerRangeDecalComponent.h"
 #include "UIEffectFormatting.h"
 
@@ -381,16 +382,16 @@ void UTowerInfoWidget::RefreshInfo()
 	else
 	{
 		SetText(TEXT("LBL_ATK"), TEXT("공격력"));
-		SetText(TEXT("TEXT_ATK"), FString::Printf(TEXT("%.0f"), TowerStat->GetStat(UStatComponent::GetTag(TEXT("Stat.AttackDamage")))));
+		SetText(TEXT("TEXT_ATK"), FString::Printf(TEXT("%.0f"), TowerStat->GetStat(TDTags::Stat_AttackDamage)));
 
 		float SpeedBonus = 0.f;
 		if (const ATowerDefenseGameMode* Mode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(this)))
 		{
 			for (const FBuffEffect& Effect : Mode->InGameUpgrades)
-				if (Effect.StatTag == UStatComponent::GetTag(TEXT("Upgrade.AttackSpeed"))) SpeedBonus += Effect.Value;
+				if (Effect.StatTag == TDTags::Upgrade_AttackSpeed) SpeedBonus += Effect.Value;
 		}
 		const float Interval = FMath::Max(0.01f,
-			TowerStat->GetStat(UStatComponent::GetTag(TEXT("Stat.AttackSpeed"))) * (1.f - SpeedBonus));
+			TowerStat->GetStat(TDTags::Stat_AttackSpeed) * (1.f - SpeedBonus));
 		SetText(TEXT("LBL_ATK_Speed"), TEXT("초당 공격 횟수"));
 		SetText(TEXT("TEXT_ATK_Speed"), FString::Printf(TEXT("%.2f /s"), 1.f / Interval));
 		SetText(TEXT("LBL_Range"), TEXT("공격 사거리"));

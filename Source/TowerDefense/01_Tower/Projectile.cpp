@@ -1,4 +1,5 @@
 ﻿#include "Projectile.h"
+#include "TowerDefenseTags.h"
 #include "TowerDefenseLog.h"
 #include "Enemy.h"
 #include "TowerStatComponent.h"
@@ -69,16 +70,16 @@ void AProjectile::OnHit(UPrimitiveComponent* OverlappedComp,
 	{
 		// 물리/마법 공격 타입에 따라 보너스 적용
 		if (TowerStatComponent->AttackTypes.HasTag(
-			UStatComponent::GetTag("AttackTypes.Physical")))
+			TDTags::AttackTypes_Physical))
 		{
 			DamageBonus = GameMode->GetUpgradeBonus(
-				UStatComponent::GetTag("Upgrade.AttackDamage.Physical"));
+				TDTags::Upgrade_AttackDamage_Physical);
 		}
 		else if (TowerStatComponent->AttackTypes.HasTag(
-			UStatComponent::GetTag("AttackTypes.Magic")))
+			TDTags::AttackTypes_Magic))
 		{
 			DamageBonus = GameMode->GetUpgradeBonus(
-				UStatComponent::GetTag("Upgrade.AttackDamage.Magic"));
+				TDTags::Upgrade_AttackDamage_Magic);
 		}
 	}
 
@@ -86,7 +87,7 @@ void AProjectile::OnHit(UPrimitiveComponent* OverlappedComp,
 	// 발사한 타워가 레벨업/합성으로 교체되어도 날아가던 탄의 피해는 유지하기 위해 IsValid는 쓰지 않음.
 	if (IsValid(enemy) && TowerStatComponent)
 	{
-		float FinalDamage = TowerStatComponent->GetStat(UStatComponent::GetTag("Stat.AttackDamage")) * (1.f + DamageBonus);
+		float FinalDamage = TowerStatComponent->GetStat(TDTags::Stat_AttackDamage) * (1.f + DamageBonus);
 		enemy->ReceiveDamage(FinalDamage, TowerStatComponent);
 	}
 	Destroy();
