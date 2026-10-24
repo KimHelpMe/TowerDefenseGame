@@ -168,12 +168,57 @@ namespace
 		}
 	}
 
-    void ApplyGachaCard(UUserWidget* Widget)
+	// 테마 한 번 적용(패스) 동안 매니저 검색·카드 정보 생성을 한 번만 하도록 공유하는 상태.
+	// (예전에는 시너지 행·가챠 카드 위젯마다 레벨 전체 액터를 GetActorOfClass로 훑었다.)
+	struct FThemePass
+	{
+		TSet<UUserWidget*> Visited;
+
+		ASynergyManager* GetSynergyManager(const UObject* WorldContext)
+		{
+			if (!bSynergyLooked)
+			{
+				bSynergyLooked = true;
+				SynergyManager = Cast<ASynergyManager>(UGameplayStatics::GetActorOfClass(WorldContext, ASynergyManager::StaticClass()));
+			}
+			return SynergyManager;
+		}
+
+		AGachaManager* GetGachaManager(const UObject* WorldContext)
+		{
+			if (!bGachaLooked)
+			{
+				bGachaLooked = true;
+				GachaManager = Cast<AGachaManager>(UGameplayStatics::GetActorOfClass(WorldContext, AGachaManager::StaticClass()));
+			}
+			return GachaManager;
+		}
+
+		const TArray<FGachaCardInfo>& GetCardInfos(AGachaManager* Manager)
+		{
+			if (!bCardInfosBuilt)
+			{
+				bCardInfosBuilt = true;
+				CardInfos = Manager->BuildCardInfos(Manager->CurrentRollResult);
+			}
+			return CardInfos;
+		}
+
+	private:
+		ASynergyManager* SynergyManager = nullptr;
+		AGachaManager* GachaManager = nullptr;
+		TArray<FGachaCardInfo> CardInfos;
+		bool bSynergyLooked = false;
+		bool bGachaLooked = false;
+		bool bCardInfosBuilt = false;
+	};
+
+    void ApplyGachaCard(UUserWidget* Widget, FThemePass& Pass)
     {
-        AGachaManager* Manager = Cast<AGachaManager>(UGameplayStatics::GetActorOfClass(Widget, AGachaManager::StaticClass()));
+        AGachaManager* Manager = Pass.GetGachaManager(Widget);
         FIntProperty* IndexProperty = FindFProperty<FIntProperty>(Widget->GetClass(), TEXT("CardIndex"));
         if (!Manager || !IndexProperty) return;
-        const TArray<FGachaCardInfo> Infos = Manager->BuildCardInfos(Manager->CurrentRollResult);
+        const TArray<FGachaCardInfo>& Infos = Pass.GetCardInfos(Manager);
         const int32 Index = IndexProperty->GetPropertyValue_InContainer(Widget);
         if (!Infos.IsValidIndex(Index)) return;
         const FGachaCardInfo& Info = Infos[Index];
@@ -236,16 +281,16 @@ namespace
         if (UScrollBox* Scroll = Cast<UScrollBox>(Widget->GetWidgetFromName(TEXT("CardDetailsScroll")))) Scroll->ScrollToStart();
     }
 
-	void ApplyRecursive(UUserWidget* Widget, TSet<UUserWidget*>& Visited)
+	void ApplyRecursive(UUserWidget* Widget, FThemePass& Pass)
 	{
-		if (!IsValid(Widget) || Visited.Contains(Widget) || !Widget->WidgetTree)
+		if (!IsValid(Widget) || Pass.Visited.Contains(Widget) || !Widget->WidgetTree)
 		{
 			return;
 		}
-		Visited.Add(Widget);
+		Pass.Visited.Add(Widget);
         if (Widget->GetClass()->GetName().Contains(TEXT("SynergyBar")))
         {
-            ASynergyManager* Manager = Cast<ASynergyManager>(UGameplayStatics::GetActorOfClass(Widget, ASynergyManager::StaticClass()));
+            ASynergyManager* Manager = Pass.GetSynergyManager(Widget);
             UScrollBox* List = Cast<UScrollBox>(Widget->GetWidgetFromName(TEXT("SynergyList")));
             if (Manager && Manager->SynergyDataTable && List)
             {
@@ -315,7 +360,7 @@ namespace
         if (Widget->GetClass()->GetName().Contains(TEXT("SynergyRow")))
         {
             UTextBlock* NameText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("SynergyName")));
-            ASynergyManager* Manager = Cast<ASynergyManager>(UGameplayStatics::GetActorOfClass(Widget, ASynergyManager::StaticClass()));
+            ASynergyManager* Manager = Pass.GetSynergyManager(Widget);
             if (NameText && Manager && Manager->SynergyDataTable)
             {
                 TArray<FSynergyDataRow*> Rows; Manager->SynergyDataTable->GetAllRows(TEXT("Synergy UI"), Rows);
@@ -451,17 +496,17 @@ namespace
 			ApplyWidgetStyle(Child);
 			if (UUserWidget* NestedWidget = Cast<UUserWidget>(Child))
 			{
-				ApplyRecursive(NestedWidget, Visited);
+				ApplyRecursive(NestedWidget, Pass);
 			}
 		}
-        if (Widget->GetClass()->GetName().Contains(TEXT("GachaCard"))) ApplyGachaCard(Widget);
+        if (Widget->GetClass()->GetName().Contains(TEXT("GachaCard"))) ApplyGachaCard(Widget, Pass);
 	}
 }
 
 void FFantasyUITheme::ApplyToWidgetTree(UUserWidget* RootWidget)
 {
-	TSet<UUserWidget*> Visited;
-	ApplyRecursive(RootWidget, Visited);
+	FThemePass Pass;
+	ApplyRecursive(RootWidget, Pass);
 }
 
 void FFantasyUITheme::ApplyToViewport(UWorld* World)
@@ -478,9 +523,9 @@ void FFantasyUITheme::ApplyToViewport(UWorld* World)
 		UUserWidget::StaticClass(),
 		true);
 
-	TSet<UUserWidget*> Visited;
+	FThemePass Pass;
 	for (UUserWidget* Widget : TopLevelWidgets)
 	{
-		ApplyRecursive(Widget, Visited);
+		ApplyRecursive(Widget, Pass);
 	}
 }
