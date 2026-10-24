@@ -55,9 +55,12 @@ public:
 	float EpicPoolRate = 3.f;
 
 	// 현재 열려 있는 슬롯 참조.
-	ATowerSlot* CurrentSlot;
+	// UPROPERTY로 GC가 추적하게 해 슬롯 파괴 후 dangling 포인터가 남지 않도록 함.
+	UPROPERTY(Transient)
+	TObjectPtr<ATowerSlot> CurrentSlot;
 
 	// 이번 뽑기 결과 3장.
+	UPROPERTY(Transient)
 	TArray<TSubclassOf<AActor>> CurrentRollResult;
 
 
