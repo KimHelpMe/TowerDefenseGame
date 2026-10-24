@@ -155,7 +155,10 @@ void ATowerDefenseGameMode::ShowBattleResult()
 bool ATowerDefenseGameMode::CanSkip()
 {
 	if (!RoundManager) return false;
-	if (RoundManager->CurrentTimer <= RoundManager->RoundTimer - 50 && RoundManager->CurrentRound < RoundManager->MaxRound)
+	// 50초 경과 후 남은 적과 관계없이 스킵 가능. 단 다음 라운드를 시작하면 이번 라운드의 남은 스폰이
+	// 사라지므로 스폰이 끝난 뒤에만 허용(라운드 0의 대기 시간은 스폰이 없으므로 그대로 허용).
+	const bool bSpawnFinished = RoundManager->CurrentRound == 0 || RoundManager->bRoundSpawnComplete;
+	if (RoundManager->CurrentTimer <= RoundManager->RoundTimer - 50 && !RoundManager->IsFinalRound() && bSpawnFinished)
 	{
 		return true;
 	}
