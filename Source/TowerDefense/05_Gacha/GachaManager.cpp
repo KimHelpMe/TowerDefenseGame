@@ -222,8 +222,10 @@ void AGachaManager::Roll()
 
 	if (GachaWidget)
 	{
-		GachaWidget->UpdateGachaUI(BuildCardInfos(CurrentRollResult));
+		const TArray<FGachaCardInfo> CardInfos = BuildCardInfos(CurrentRollResult);
+		GachaWidget->UpdateGachaUI(CardInfos);
         FFantasyUITheme::ApplyToWidgetTree(GachaWidget);
+		GachaWidget->PlayRarityReveal(CardInfos);
 	}
 	CurrentSlot->SavedRollResult = CurrentRollResult;
 }
