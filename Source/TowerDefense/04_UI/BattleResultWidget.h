@@ -12,4 +12,6 @@ protected:
 private:
     UFUNCTION() void RetryBattle();
     UFUNCTION() void ReturnToMenu();
+    TWeakObjectPtr<UUserWidget> CursorWidget;
+    double NextCursorSearchTime=0.;
 };

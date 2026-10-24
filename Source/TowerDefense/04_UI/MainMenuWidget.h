@@ -35,4 +35,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UButton> QuitButton;
+
+	TWeakObjectPtr<UUserWidget> CursorWidget;
+	double NextCursorSearchTime = 0.;
 };
