@@ -1,4 +1,5 @@
 ﻿#include "GachaManager.h"
+#include "TowerDefenseLog.h"
 #include "FantasyUITheme.h"
 #include "UIEffectFormatting.h"
 #include "BaseTower.h"
@@ -221,7 +222,7 @@ void AGachaManager::Roll()
 
 	for (const TSubclassOf<AActor>& Item : CurrentRollResult)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RollResult: %s"), Item ? *Item->GetName() : TEXT("NULL"));
+		UE_LOG(LogTowerDefense, Verbose, TEXT("RollResult: %s"), Item ? *Item->GetName() : TEXT("NULL"));
 	}
 
 	if (GachaWidget)
@@ -255,7 +256,7 @@ void AGachaManager::SelectItem(int32 Index)
 			EpicManager->FindFusionMaterials(SelectedClass, SynergyManager->FieldTowers, FusionMaterials);
 		if (!bHasMaterials)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Fusion card %s cancelled: materials are no longer on the field."), *SelectedClass->GetName());
+			UE_LOG(LogTowerDefense, Log, TEXT("Fusion card %s cancelled: materials are no longer on the field."), *SelectedClass->GetName());
 			if (EpicManager) EpicManager->CancelPendingFusion(SelectedClass, this);
 			else PendingFusionTowers.Remove(SelectedClass);
 			Roll();

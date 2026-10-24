@@ -1,4 +1,5 @@
 ﻿#include "Enemy.h"
+#include "TowerDefenseLog.h"
 #include "Base.h"
 #include "TowerDefenseGameMode.h"
 #include "Kismet/GameplayStatics.h"
@@ -96,7 +97,7 @@ void AEnemy::Tick(float DeltaTime)
 
 void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 {
-	UE_LOG(LogTemp, Warning, TEXT("ReceiveDamage called, Amount: %f"), AmountDamage);
+	UE_LOG(LogTowerDefense, Verbose, TEXT("ReceiveDamage called, Amount: %f"), AmountDamage);
 	if (bIsDead) return;
 
 	float FinalDamage = AmountDamage;
@@ -173,7 +174,7 @@ void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 				FinalDamage *= (1.f - FMath::Max(0.f, Elem.Value - Penetration));
 			}
 		}
-		UE_LOG(LogTemp, Warning, TEXT("FinalDamage: %f"), FinalDamage);
+		UE_LOG(LogTowerDefense, Verbose, TEXT("FinalDamage: %f"), FinalDamage);
 	}
 
 	// 속성 저항이 1을 넘거나 배율 데이터가 음수면 피해가 음수가 될 수 있다.

@@ -1,11 +1,12 @@
 ﻿#include "SingleAttackComponent.h"
+#include "TowerDefenseLog.h"
 #include "Projectile.h"
 #include "TowerStatComponent.h"
 #include "Enemy.h"
 
 void USingleAttackComponent::ExecuteAttack(TArray<AEnemy*>Targets)
 {
-	UE_LOG(LogTemp, Warning, TEXT("ExecuteAttack called, Targets: %d"), Targets.Num());
+	UE_LOG(LogTowerDefense, Verbose, TEXT("ExecuteAttack called, Targets: %d"), Targets.Num());
 
 	// Targets는 배열(TArray). nullptr이 아님. 
 	if (Targets.IsEmpty())
@@ -15,7 +16,7 @@ void USingleAttackComponent::ExecuteAttack(TArray<AEnemy*>Targets)
 
 	if (!ProjectileClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ProjectileClass is NULL"));
+		UE_LOG(LogTowerDefense, Warning, TEXT("ProjectileClass is NULL"));
 		return;
 	}
 

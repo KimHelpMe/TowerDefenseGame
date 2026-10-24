@@ -1,4 +1,5 @@
 ﻿#include "ManaComponent.h"
+#include "TowerDefenseLog.h"
 #include "TowerDefenseGameMode.h"
 #include "StatComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -58,7 +59,7 @@ void UManaComponent::RegenMana()
 	if (!FMath::IsFinite(CurrentMana)) CurrentMana = 0.f;
 
 	CurrentMana = FMath::Clamp(CurrentMana + ManaRegenRate, 0.f, MaxMana);
-	UE_LOG(LogTemp, Warning, TEXT("CurrentMana: %f / %f"), CurrentMana, MaxMana);
+	UE_LOG(LogTowerDefense, Verbose, TEXT("CurrentMana: %f / %f"), CurrentMana, MaxMana);
 	OnManaChanged.Broadcast(CurrentMana / MaxMana);
 
 	if (CurrentMana >= MaxMana && bAutoFire)

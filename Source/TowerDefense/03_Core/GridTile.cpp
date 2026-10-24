@@ -1,6 +1,7 @@
 ﻿
 
 #include "GridTile.h"
+#include "TowerDefenseLog.h"
 #include "GridManager.h"
 #include "TowerDefenseGameMode.h"
 #include "Kismet/GameplayStatics.h"
@@ -26,20 +27,20 @@ void AGridTile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UE_LOG(LogTemp, Warning, TEXT("GridTile BeginPlay 호출"));
+	UE_LOG(LogTowerDefense, Verbose, TEXT("GridTile BeginPlay 호출"));
 
 	GridManager = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
 
 	if (TileMesh)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TileMesh 존재, 바인딩 시작"));
+		UE_LOG(LogTowerDefense, Verbose, TEXT("TileMesh 존재, 바인딩 시작"));
 		TileMesh->OnClicked.AddDynamic(this, &AGridTile::OnTileClicked);
 		TileMesh->OnBeginCursorOver.AddDynamic(this, &AGridTile::OnTileBeginCursorOver);
 		TileMesh->OnEndCursorOver.AddDynamic(this, &AGridTile::OnTileEndCursorOver);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TileMesh NULL"));
+		UE_LOG(LogTowerDefense, Warning, TEXT("TileMesh NULL"));
 	}
 
 	TileMaterial = UMaterialInstanceDynamic::Create(TileMesh->GetMaterial(0), this);
@@ -53,7 +54,7 @@ void AGridTile::SetHighlight(bool bOn)
 
 	if (bOn)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SetHighlight ON"));
+		UE_LOG(LogTowerDefense, Verbose, TEXT("SetHighlight ON"));
 		TileMaterial->SetScalarParameterValue(TEXT("EmissiveStrength"), 1.0f);
 		TileMaterial->SetScalarParameterValue(TEXT("OutlineStrength"), 1.0f);
 		OutlineMesh->SetVisibility(true);
@@ -65,7 +66,7 @@ void AGridTile::SetHighlight(bool bOn)
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SetHighlight OFF"));
+		UE_LOG(LogTowerDefense, Verbose, TEXT("SetHighlight OFF"));
 		TileMaterial->SetScalarParameterValue(TEXT("EmissiveStrength"), 0.0f);
 		TileMaterial->SetScalarParameterValue(TEXT("OutlineStrength"), 0.0f);
 		OutlineMesh->SetVisibility(false);

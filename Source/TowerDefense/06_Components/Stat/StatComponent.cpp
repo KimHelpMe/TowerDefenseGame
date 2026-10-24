@@ -1,4 +1,5 @@
 ﻿#include "StatComponent.h"
+#include "TowerDefenseLog.h"
 #include "FBuffEffect.h"
 
 UStatComponent::UStatComponent()
@@ -122,7 +123,7 @@ void UStatComponent::ApplyDamage(float Amount)
 	if (!FMath::IsFinite(CurrentHP) || CurrentHP <= 0.f) return;
 
 	const float NewHP = FMath::Max(0.f, CurrentHP - Amount);
-	UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: CurrentHP=%f, Amount=%f"), CurrentHP, Amount);
+	UE_LOG(LogTowerDefense, Verbose, TEXT("ApplyDamage: CurrentHP=%f, Amount=%f"), CurrentHP, Amount);
 
 	if (NewHP <= 0.f)
 	{

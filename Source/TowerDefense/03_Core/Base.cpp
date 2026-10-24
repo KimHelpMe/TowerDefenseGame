@@ -1,4 +1,5 @@
 #include "Base.h"
+#include "TowerDefenseLog.h"
 #include "StatComponent.h"
 #include "TowerDefenseGameMode.h"
 
@@ -40,11 +41,11 @@ void ABase::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 	}
 
 	BaseHp = FMath::Clamp(BaseHp - FMath::Max(0.f, FinalDamage), 0.f, FMath::Max(0.f, BaseMaxHp));
-	UE_LOG(LogTemp, Warning, TEXT("Base HP: %f"), BaseHp);
+	UE_LOG(LogTowerDefense, Verbose, TEXT("Base HP: %f"), BaseHp);
 	if (BaseHp <= 0.f)
 	{
 		bIsDefeated = true;
-		UE_LOG(LogTemp, Warning, TEXT("Base Destroyed!"));
+		UE_LOG(LogTowerDefense, Log, TEXT("Base Destroyed!"));
 		if (ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(GetWorld()->GetAuthGameMode()))
 		{
 			GameMode->TriggerGameOver();
