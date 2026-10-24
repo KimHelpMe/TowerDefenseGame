@@ -1,5 +1,6 @@
 ﻿
 #include "CameraManager.h"
+#include "Engine/GameViewportClient.h"
 #include "GridTile.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
@@ -80,9 +81,11 @@ void ACameraManager::Tick(float DeltaTime)
 	float X, Y;
 	FVector2D ViewportSize;
 
-	GEngine->GameViewport->GetViewportSize(ViewportSize);
+	APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC || !GetWorld()->GetGameViewport() || GetWorld()->IsPaused()) return;
+    GetWorld()->GetGameViewport()->GetViewportSize(ViewportSize);
 
-	if (!GetWorld()->GetFirstPlayerController()->GetMousePosition(X, Y))
+	if (!PC->GetMousePosition(X, Y) || X < 0.f || Y < 0.f || X > ViewportSize.X || Y > ViewportSize.Y)
 		return;
 
 	FVector EdgeMove = FVector::ZeroVector;
@@ -121,7 +124,7 @@ void ACameraManager::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
     UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (EIC)
 	{
-		EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACameraManager::Move);
+		// Camera panning uses the mouse at the viewport edges.
 		EIC->BindAction(ZoomAction, ETriggerEvent::Triggered, this, &ACameraManager::Zoom);
 	}
 

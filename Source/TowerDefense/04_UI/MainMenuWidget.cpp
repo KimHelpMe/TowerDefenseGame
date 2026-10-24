@@ -1,5 +1,6 @@
 #include "MainMenuWidget.h"
 
+
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -171,8 +172,13 @@ void UMainMenuWidget::HandleStartClicked()
 
 	if (APlayerController* PlayerController = GetMenuPlayerController())
 	{
-		PlayerController->bShowMouseCursor = false;
-		PlayerController->SetInputMode(FInputModeGameAndUI());
+		// Keep absolute mouse coordinates available for edge scrolling after viewport clicks.
+        PlayerController->bShowMouseCursor = true;
+        PlayerController->CurrentMouseCursor = EMouseCursor::None;
+        FInputModeGameAndUI InputMode;
+        InputMode.SetHideCursorDuringCapture(false);
+        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+        PlayerController->SetInputMode(InputMode);
 	}
 
 	RemoveFromParent();
