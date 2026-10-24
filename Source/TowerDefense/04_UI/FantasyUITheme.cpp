@@ -32,6 +32,55 @@ namespace
 	const FLinearColor PrimaryTextColor(0.84f, 0.88f, 0.95f, 1.f);
 	const FLinearColor MutedTextColor(0.56f, 0.64f, 0.75f, 1.f);
 
+	// 테마는 0.5초마다 다시 적용되므로, 값이 같을 때 Set을 호출하면 매번 Slate 무효화(재그리기)가 일어난다.
+	// 아래 함수들은 실제로 값이 바뀔 때만 위젯에 반영한다.
+	bool SameColor(const FLinearColor& A, const FLinearColor& B)
+	{
+		return A.Equals(B, 1.e-4f);
+	}
+
+	void SetCursorIfChanged(UWidget* Widget, EMouseCursor::Type Cursor)
+	{
+		if (!Widget->bOverride_Cursor || Widget->GetCursor() != Cursor) Widget->SetCursor(Cursor);
+	}
+
+	void SetBrushColorIfChanged(UBorder* Border, const FLinearColor& Color)
+	{
+		if (Border && !SameColor(Border->GetBrushColor(), Color)) Border->SetBrushColor(Color);
+	}
+
+	void SetButtonColorIfChanged(UButton* Button, const FLinearColor& Color)
+	{
+		if (Button && !SameColor(Button->GetBackgroundColor(), Color)) Button->SetBackgroundColor(Color);
+	}
+
+	void SetFillColorIfChanged(UProgressBar* ProgressBar, const FLinearColor& Color)
+	{
+		if (ProgressBar && !SameColor(ProgressBar->GetFillColorAndOpacity(), Color)) ProgressBar->SetFillColorAndOpacity(Color);
+	}
+
+	void SetTextColorIfChanged(UTextBlock* Text, const FLinearColor& Color)
+	{
+		if (!Text) return;
+		const FSlateColor Current = Text->GetColorAndOpacity();
+		if (!Current.IsColorSpecified() || !SameColor(Current.GetSpecifiedColor(), Color)) Text->SetColorAndOpacity(FSlateColor(Color));
+	}
+
+	void SetTextIfChanged(UTextBlock* Text, const FString& Value)
+	{
+		if (Text && !Text->GetText().ToString().Equals(Value, ESearchCase::CaseSensitive)) Text->SetText(FText::FromString(Value));
+	}
+
+	void SetVisibilityIfChanged(UWidget* Widget, ESlateVisibility Visibility)
+	{
+		if (Widget && Widget->GetVisibility() != Visibility) Widget->SetVisibility(Visibility);
+	}
+
+	void SetToolTipTextIfChanged(UWidget* Widget, const FString& Value)
+	{
+		if (Widget && !Widget->GetToolTipText().ToString().Equals(Value, ESearchCase::CaseSensitive)) Widget->SetToolTipText(FText::FromString(Value));
+	}
+
 	void ApplyWidgetStyle(UWidget* Widget)
 	{
 		if (!IsValid(Widget))
@@ -39,7 +88,7 @@ namespace
 			return;
 		}
 
-		Widget->SetCursor(EMouseCursor::None);
+		SetCursorIfChanged(Widget, EMouseCursor::None);
 		const FString Name = Widget->GetName();
 		const FString LowerName = Name.ToLower();
 
@@ -48,18 +97,18 @@ namespace
 
 		if (UBorder* Border = Cast<UBorder>(Widget))
 		{
-            if (Border->Background.GetResourceObject()) { Border->SetBrushColor(FLinearColor::White); return; }
+            if (Border->Background.GetResourceObject()) { SetBrushColorIfChanged(Border, FLinearColor::White); return; }
 			if (LowerName.Contains(TEXT("goldframe")) || LowerName.Contains(TEXT("divider")))
 			{
-				Border->SetBrushColor(FLinearColor(0.48f, 0.36f, 0.19f, 0.9f));
+				SetBrushColorIfChanged(Border, FLinearColor(0.48f, 0.36f, 0.19f, 0.9f));
 			}
 			else if (LowerName.Contains(TEXT("badge")))
 			{
-				Border->SetBrushColor(FLinearColor(0.36f, 0.25f, 0.09f, 0.98f));
+				SetBrushColorIfChanged(Border, FLinearColor(0.36f, 0.25f, 0.09f, 0.98f));
 			}
 			else
 			{
-				Border->SetBrushColor(LowerName.Contains(TEXT("card")) ? InsetColor : PanelColor);
+				SetBrushColorIfChanged(Border, LowerName.Contains(TEXT("card")) ? InsetColor : PanelColor);
 			}
 		}
 		else if (UButton* Button = Cast<UButton>(Widget))
@@ -67,31 +116,31 @@ namespace
 			if (LowerName.Contains(TEXT("place")) || LowerName.Contains(TEXT("upgrade")) ||
 				LowerName.Contains(TEXT("reload")) || LowerName.Contains(TEXT("heal")))
 			{
-				Button->SetBackgroundColor(FLinearColor(0.34f, 0.24f, 0.105f, 1.f));
+				SetButtonColorIfChanged(Button, FLinearColor(0.34f, 0.24f, 0.105f, 1.f));
 			}
 			else if (LowerName.Contains(TEXT("purge")) || LowerName.Contains(TEXT("skill")) ||
 				LowerName.Contains(TEXT("autofire")))
 			{
-				Button->SetBackgroundColor(FLinearColor(0.075f, 0.22f, 0.28f, 1.f));
+				SetButtonColorIfChanged(Button, FLinearColor(0.075f, 0.22f, 0.28f, 1.f));
 			}
 			else
 			{
-				Button->SetBackgroundColor(InsetColor);
+				SetButtonColorIfChanged(Button, InsetColor);
 			}
 		}
 		else if (UProgressBar* ProgressBar = Cast<UProgressBar>(Widget))
 		{
 			if (LowerName.Contains(TEXT("hp")))
 			{
-				ProgressBar->SetFillColorAndOpacity(FLinearColor(0.27f, 0.72f, 0.46f, 1.f));
+				SetFillColorIfChanged(ProgressBar, FLinearColor(0.27f, 0.72f, 0.46f, 1.f));
 			}
 			else if (LowerName.Contains(TEXT("mana")))
 			{
-				ProgressBar->SetFillColorAndOpacity(CyanColor);
+				SetFillColorIfChanged(ProgressBar, CyanColor);
 			}
 			else
 			{
-				ProgressBar->SetFillColorAndOpacity(GoldColor);
+				SetFillColorIfChanged(ProgressBar, GoldColor);
 			}
 		}
 		else if (UTextBlock* Text = Cast<UTextBlock>(Widget))
@@ -115,7 +164,7 @@ namespace
 			{
 				TextColor = CyanColor;
 			}
-			Text->SetColorAndOpacity(FSlateColor(TextColor));
+			SetTextColorIfChanged(Text, TextColor);
 		}
 	}
 
@@ -136,12 +185,12 @@ namespace
         else if (Info.Grade == TEXT("Epic")) GradeColor = FLinearColor(.9f,.7f,.1f,1.f);
         if (UTextBlock* Grade = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_Grade"))))
         {
-            Grade->SetText(FText::FromString(Info.Grade));
-            Grade->SetColorAndOpacity(GradeColor);
+            SetTextIfChanged(Grade, Info.Grade);
+            SetTextColorIfChanged(Grade, GradeColor);
         }
-        if (UBorder* Frame = Cast<UBorder>(Widget->GetWidgetFromName(TEXT("CardBorderGoldFrame")))) Frame->SetBrushColor(GradeColor);
-        if (UBorder* Badge = Cast<UBorder>(Widget->GetWidgetFromName(TEXT("UPBadge")))) Badge->SetBrushColor(GradeColor * FLinearColor(.22f,.22f,.22f,1.f));
-        if (UTextBlock* Type = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_AttackType")))) Type->SetText(FText::FromString(Info.AttackType));
+        if (UBorder* Frame = Cast<UBorder>(Widget->GetWidgetFromName(TEXT("CardBorderGoldFrame")))) SetBrushColorIfChanged(Frame, GradeColor);
+        if (UBorder* Badge = Cast<UBorder>(Widget->GetWidgetFromName(TEXT("UPBadge")))) SetBrushColorIfChanged(Badge, GradeColor * FLinearColor(.22f,.22f,.22f,1.f));
+        if (UTextBlock* Type = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_AttackType")))) SetTextIfChanged(Type, Info.AttackType);
         UTextBlock* Previous = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_Info")));
         UVerticalBox* List = Cast<UVerticalBox>(Widget->GetWidgetFromName(TEXT("CardDetailsList")));
         if (!Previous || !List) return;
@@ -274,16 +323,16 @@ namespace
                 {
                     if (Row->SynergyDisplayName != NameText->GetText().ToString()) continue;
                     const int32 Count = Manager->SynergyCountMap.FindRef(Row->SynergyTag);
-                    Widget->SetVisibility(Count > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+                    SetVisibilityIfChanged(Widget, Count > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
                     if (Count <= 0) break;
                     int32 MaxStack = 0;
                     for (const FSynergyStep& Step : Row->Steps) MaxStack = FMath::Max(MaxStack, Step.RequireCount);
                     const int32 DisplayStack = MaxStack > 0 ? FMath::Clamp(Count, 0, MaxStack) : Count;
                     if (UTextBlock* CountText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("CountText"))))
                     {
-                        CountText->SetText(MaxStack > 0
-                            ? FText::FromString(FString::Printf(TEXT("%d/%d"), DisplayStack, MaxStack))
-                            : FText::AsNumber(Count));
+                        SetTextIfChanged(CountText, MaxStack > 0
+                            ? FString::Printf(TEXT("%d/%d"), DisplayStack, MaxStack)
+                            : FString::FromInt(Count));
                     }
 
                     if (UHorizontalBox* SegmentBox = Cast<UHorizontalBox>(Widget->GetWidgetFromName(TEXT("SegmentBox"))))
@@ -333,10 +382,10 @@ namespace
                             if (!Fill) continue;
 
                             const FSynergyStep& Step = Row->Steps[Index];
-                            Fill->SetBrushColor(Count >= Step.RequireCount
+                            SetBrushColorIfChanged(Fill, Count >= Step.RequireCount
                                 ? AccentColor
                                 : FLinearColor(0.09f, 0.13f, 0.19f, 1.f));
-                            Cell->SetToolTipText(FText::FromString(FString::Printf(TEXT("효과 단계 · %d스택"), Step.RequireCount)));
+                            SetToolTipTextIfChanged(Cell, FString::Printf(TEXT("효과 단계 · %d스택"), Step.RequireCount));
                         }
                     }
 
@@ -373,7 +422,7 @@ namespace
                         UClass* TipClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/03_UI/01_SynergyUI/WBP_SynergyTooltip.WBP_SynergyTooltip_C"));
                         if (TipClass) { Tip = CreateWidget<UUserWidget>(Widget->GetWorld(), TipClass); Widget->SetToolTip(Tip); }
                     }
-                    if (Tip) if (UTextBlock* Text = Cast<UTextBlock>(Tip->GetWidgetFromName(TEXT("TooltipBody")))) Text->SetText(FText::FromString(Detail));
+                    if (Tip) if (UTextBlock* Text = Cast<UTextBlock>(Tip->GetWidgetFromName(TEXT("TooltipBody")))) SetTextIfChanged(Text, Detail);
                     FString EffectSummary = ActiveEffect;
                     if (EffectSummary.IsEmpty())
                     {
@@ -381,7 +430,7 @@ namespace
                         else if (NextStepCount != INDEX_NONE) EffectSummary = FString::Printf(TEXT("다음 단계 · %d스택"), NextStepCount);
                         else EffectSummary = TEXT("단계별 효과 없음");
                     }
-                    if (UTextBlock* EffectText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("EffectText")))) EffectText->SetText(FText::FromString(EffectSummary));
+                    if (UTextBlock* EffectText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("EffectText")))) SetTextIfChanged(EffectText, EffectSummary);
                     break;
                 }
             }
