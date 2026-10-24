@@ -44,12 +44,20 @@ void ASynergyManager::UnregisterTower(ABaseTower* Tower)
 {
 	if (!Tower) return;
 
-	FieldTowers.Remove(Tower);
-	UpdateSynergies();
+	if (FieldTowers.Remove(Tower) > 0)
+	{
+		UpdateSynergies();
+	}
 }
 
 void ASynergyManager::UpdateSynergies()
 {
+	// 파괴되었거나 GC로 null이 된 타워 정리.
+	FieldTowers.RemoveAll([](const ABaseTower* Tower)
+	{
+		return !IsValid(Tower);
+	});
+
 	if (!SynergyDataTable) return;
 
 	// 태그별 타워 수 계산.
