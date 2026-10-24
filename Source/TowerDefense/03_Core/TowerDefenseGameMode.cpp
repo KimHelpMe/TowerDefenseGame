@@ -1,4 +1,5 @@
 #include "TowerDefenseGameMode.h"
+#include "TowerDefenseLog.h"
 #include "MainMenuWidget.h"
 #include "BattleResultWidget.h"
 #include "FantasyUITheme.h"
@@ -287,6 +288,6 @@ float ATowerDefenseGameMode::GetUpgradeBonus(FGameplayTag StatTag)
 		}
 
 	}
-	UE_LOG(LogTemp, Warning, TEXT("GetUpgradeBonus: %s = %f"), *StatTag.ToString(), TotalBonus);
+	UE_LOG(LogTowerDefense, Verbose, TEXT("GetUpgradeBonus: %s = %f"), *StatTag.ToString(), TotalBonus);
 	return TotalBonus;
 }

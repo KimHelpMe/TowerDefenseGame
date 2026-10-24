@@ -1,5 +1,6 @@
 
 #include "SplitAbilityComponent.h"
+#include "TowerDefenseLog.h"
 #include "Enemy.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -37,7 +38,7 @@ void USplitAbilityComponent::OnEnemyDeathAbility()
 			SpawnedEnemy->splinePath = OwnerEnemy->splinePath;
 			// Stagger children along the spline so they do not move as one stacked unit.
 			SpawnedEnemy->CurrentSplinePoint = FMath::Max(0.f, OwnerEnemy->CurrentSplinePoint - i * SplitSpacing);
-			UE_LOG(LogTemp, Warning, TEXT("Split! Spawned Enemy %d"), i);
+			UE_LOG(LogTowerDefense, Verbose, TEXT("Split! Spawned Enemy %d"), i);
 		}
 	}
 }

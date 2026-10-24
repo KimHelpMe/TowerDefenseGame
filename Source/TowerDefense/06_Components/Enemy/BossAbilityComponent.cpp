@@ -1,5 +1,6 @@
 ﻿
 #include "BossAbilityComponent.h"
+#include "TowerDefenseLog.h"
 #include "Enemy.h"
 #include "EnemySplinePath.h"
 #include "FBuffEffect.h"
@@ -13,7 +14,7 @@ void UBossAbilityComponent::OnPhaseChanged(int32 NewPhase)
 	CurrentPhase = NewPhase;
 	SpawnMinions();
 	ApplyPhaseBuffs(NewPhase);
-	UE_LOG(LogTemp, Warning, TEXT("Boss Phase Changed to %d"), NewPhase);
+	UE_LOG(LogTowerDefense, Log, TEXT("Boss Phase Changed to %d"), NewPhase);
 }
 
 void UBossAbilityComponent::SpawnMinions()

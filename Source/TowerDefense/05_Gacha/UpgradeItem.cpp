@@ -1,4 +1,5 @@
 #include "UpgradeItem.h"
+#include "TowerDefenseLog.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerDefenseGameMode.h"
 
@@ -34,7 +35,7 @@ void AUpgradeItem::ApplyUpgradeEffects()
 
 	for (FBuffEffect& Effect : UpgradeEffects)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Applying Upgrade: %s, Value: %f"),
+		UE_LOG(LogTowerDefense, Log, TEXT("Applying Upgrade: %s, Value: %f"),
 			*Effect.StatTag.ToString(), Effect.Value);
 
 

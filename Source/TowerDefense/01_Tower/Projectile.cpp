@@ -1,4 +1,5 @@
 ﻿#include "Projectile.h"
+#include "TowerDefenseLog.h"
 #include "Enemy.h"
 #include "TowerStatComponent.h"
 #include "TowerDefenseGameMode.h"
@@ -55,7 +56,7 @@ void AProjectile::OnHit(UPrimitiveComponent* OverlappedComp,
 {
 	if (!IsValid(OtherActor) || Cast<AProjectile>(OtherActor)) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("OnHit called, OtherActor: %s"), *OtherActor->GetName());
+	UE_LOG(LogTowerDefense, Verbose, TEXT("OnHit called, OtherActor: %s"), *OtherActor->GetName());
 
 	AEnemy* enemy = Cast<AEnemy>(OtherActor);
 
@@ -94,6 +95,6 @@ void AProjectile::OnHit(UPrimitiveComponent* OverlappedComp,
 
 void AProjectile::OnProjectileStopped(const FHitResult& ImpactResult)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnProjectileStopped called"));
+	UE_LOG(LogTowerDefense, Verbose, TEXT("OnProjectileStopped called"));
 	Destroy();
 }

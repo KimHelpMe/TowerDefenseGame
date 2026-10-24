@@ -1,4 +1,5 @@
 ﻿#include "TowerStatComponent.h"
+#include "TowerDefenseLog.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerDefenseGameMode.h"
 #include "SingleAttackComponent.h"
@@ -75,10 +76,10 @@ void UTowerStatComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 
 void UTowerStatComponent::InitFromDataTable()
 {
-    UE_LOG(LogTemp, Warning, TEXT("InitFromDataTable called"));
+    UE_LOG(LogTowerDefense, Verbose, TEXT("InitFromDataTable called"));
     if (!TowerDataTable)
     {
-        UE_LOG(LogTemp, Warning, TEXT("TowerDataTable is NULL"));
+        UE_LOG(LogTowerDefense, Log, TEXT("TowerDataTable is NULL"));
         return;
     }
 

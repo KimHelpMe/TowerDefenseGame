@@ -1,4 +1,5 @@
 #include "RoundManager.h"
+#include "TowerDefenseLog.h"
 #include "Kismet/GameplayStatics.h"
 #include "EnemySpawnSystem.h"
 #include "EnemySplinePath.h"
@@ -151,7 +152,7 @@ void ARoundManager::ProcessNextEntry()
 {
 	if (!IsValid(SpawnSystem) || !IsValid(SpawnSystem->splinePath) || !IsValid(SpawnSystem->splinePath->splineComponent))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Round spawning stopped because the enemy spawn path is invalid."));
+		UE_LOG(LogTowerDefense, Error, TEXT("Round spawning stopped because the enemy spawn path is invalid."));
 		StopRounds();
 		return;
 	}

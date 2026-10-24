@@ -1,4 +1,5 @@
 ﻿#include "MultiAttackComponent.h"
+#include "TowerDefenseLog.h"
 #include "Projectile.h"
 #include "TowerStatComponent.h"
 #include "Enemy.h"
@@ -11,7 +12,7 @@ UMultiAttackComponent::UMultiAttackComponent()
 void UMultiAttackComponent::ExecuteAttack(TArray<AEnemy*> Targets)
 {
 
-	UE_LOG(LogTemp, Warning, TEXT("MultiAttack called, Targets: %d, MaxTargetCount: %d"), Targets.Num(), MaxTargetCount);
+	UE_LOG(LogTowerDefense, Verbose, TEXT("MultiAttack called, Targets: %d, MaxTargetCount: %d"), Targets.Num(), MaxTargetCount);
 
 	// Targets는 배열(TArray). nullptr이 아님. 
 	if (Targets.IsEmpty())
@@ -21,7 +22,7 @@ void UMultiAttackComponent::ExecuteAttack(TArray<AEnemy*> Targets)
 
 	if (!ProjectileClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("MultiAttack ProjectileClass is NULL"));
+		UE_LOG(LogTowerDefense, Warning, TEXT("MultiAttack ProjectileClass is NULL"));
 		return;
 	}
 
@@ -35,7 +36,7 @@ void UMultiAttackComponent::ExecuteAttack(TArray<AEnemy*> Targets)
 		AProjectile* fireProjectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, FireMuzzleLocation, TargetRotation);
 		if (!fireProjectile)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("MultiAttack SpawnActor failed"));
+			UE_LOG(LogTowerDefense, Warning, TEXT("MultiAttack SpawnActor failed"));
 			return;
 		}
 		fireProjectile->TowerStatComponent = GetOwner()->GetComponentByClass<UTowerStatComponent>();

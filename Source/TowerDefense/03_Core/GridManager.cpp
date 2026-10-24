@@ -1,6 +1,7 @@
 ﻿
 
 #include "GridManager.h"
+#include "TowerDefenseLog.h"
 #include "Kismet/GameplayStatics.h"
 
 AGridManager::AGridManager()
@@ -34,13 +35,13 @@ void AGridManager::BeginPlay()
 	// PreviewMaterial Dynamic Instance create.
 	if (PreviewMaterialBase)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PreviewMaterialBase 존재"));
+		UE_LOG(LogTowerDefense, Verbose, TEXT("PreviewMaterialBase 존재"));
 		PreviewMaterial = UMaterialInstanceDynamic::Create(PreviewMaterialBase, this);
 		PreviewMesh->SetMaterial(0, PreviewMaterial);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PreviewMaterialBase NULL"));
+		UE_LOG(LogTowerDefense, Warning, TEXT("PreviewMaterialBase NULL"));
 	}
 
 }
