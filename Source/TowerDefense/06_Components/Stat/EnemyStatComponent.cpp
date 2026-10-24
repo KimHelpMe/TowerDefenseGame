@@ -77,8 +77,14 @@ void UEnemyStatComponent::InitFromDataTable()
         // 공중 여부 적용.
         if (Row->bIsAirUnit)
         {
-            UAirAbilityComponent* AirComp = NewObject<UAirAbilityComponent>(Enemy);
-            AirComp->RegisterComponent();
+            // BP에 이미 공중 컴포넌트가 있으면 중복 생성하지 않는다.
+            if (Enemy && !Enemy->GetComponentByClass<UAirAbilityComponent>())
+            {
+                UAirAbilityComponent* AirComp = NewObject<UAirAbilityComponent>(Enemy, TEXT("AirAbility"));
+                // 인스턴스 컴포넌트로 등록해야 디테일 패널·직렬화·GetComponents에서 일관되게 다뤄진다.
+                Enemy->AddInstanceComponent(AirComp);
+                AirComp->RegisterComponent();
+            }
         }
 
     }
