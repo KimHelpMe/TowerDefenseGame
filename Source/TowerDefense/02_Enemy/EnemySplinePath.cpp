@@ -3,7 +3,7 @@
 
 AEnemySplinePath::AEnemySplinePath()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 
 	splineComponent	= CreateDefaultSubobject<USplineComponent>(TEXT("SplineComponent"));
 	RootComponent = splineComponent;

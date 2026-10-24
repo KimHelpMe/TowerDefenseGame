@@ -3,7 +3,7 @@
 
 UEnemyAbilityComponent::UEnemyAbilityComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 }
 
 

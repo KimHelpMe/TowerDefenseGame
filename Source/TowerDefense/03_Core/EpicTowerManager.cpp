@@ -11,7 +11,7 @@
 AEpicTowerManager::AEpicTowerManager()
 {
  
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 
 }
 

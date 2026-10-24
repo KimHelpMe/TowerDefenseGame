@@ -8,7 +8,7 @@
 
 ARoundManager::ARoundManager()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 	RoundTimer = 100;
 	CurrentTimer = RoundTimer;
 	MaxRound = 30;
