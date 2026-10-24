@@ -1,4 +1,5 @@
 ﻿#include "GachaManager.h"
+#include "UIEffectFormatting.h"
 #include "BaseTower.h"
 #include "TowerSlot.h"
 #include "Gachable.h"
@@ -373,6 +374,20 @@ TArray<FGachaCardInfo> AGachaManager::BuildCardInfos(const TArray<TSubclassOf<AA
 						if (!Row->Grade.IsEmpty()) CardInfo.Grade = Row->Grade;
 						CardInfo.Icon = Row->Icon;
 						CardInfo.SynergyTags = Row->SynergyTags;
+                        CardInfo.AttackType = Row->TowerType;
+                        for (const FBuffEffect& Stat : Row->Stats)
+                            CardInfo.Description += FString::Printf(TEXT("%s %.2f\n"), *TowerUI::TagName(Stat.StatTag), Stat.Value);
+                        if (Row->BuffSetting.BuffType != EBuffComponentType::None)
+                        {
+                            const FBuffConfig& Buff = Row->BuffSetting;
+                            if(Buff.BuffType==EBuffComponentType::Active)
+                                CardInfo.Description += FString::Printf(TEXT("액티브 · 범위 %.0f\n지속 %.1f초 · 재사용 %.1f초\n"),Buff.BuffRadius,Buff.BuffDuration,Buff.BuffCooldown);
+                            else CardInfo.Description += FString::Printf(TEXT("지속 효과 · 범위 %.0f\n주기 %.1f초 · 범위 내 유지\n"),Buff.BuffRadius,Buff.BuffInterval);
+                            for (const FBuffEffect& Effect : Buff.BuffEffects)
+                                CardInfo.Description += FString::Printf(TEXT("%s %+.2f%s\n"), *TowerUI::TagName(Effect.StatTag), Effect.ValueType == EBuffValueType::Percent ? Effect.Value*100.f : Effect.Value, Effect.ValueType == EBuffValueType::Percent ? TEXT("%") : TEXT(""));
+                        }
+                        if (!Row->Abilities.IsEmpty()) CardInfo.Description += TowerUI::TagList(Row->Abilities);
+
 					}
 				}
 			}

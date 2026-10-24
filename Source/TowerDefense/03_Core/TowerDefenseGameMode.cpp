@@ -1,5 +1,6 @@
-﻿#include "TowerDefenseGameMode.h"
+#include "TowerDefenseGameMode.h"
 #include "MainMenuWidget.h"
+#include "BattleResultWidget.h"
 #include "FantasyUITheme.h"
 #include "Kismet/GameplayStatics.h"
 #include "TowerSlot.h"
@@ -37,6 +38,8 @@ void ATowerDefenseGameMode::BeginPlay()
 	Super::BeginPlay();
 
 FFantasyUITheme::ApplyToViewport(GetWorld());
+    FTimerHandle UIRefreshHandle;
+    GetWorldTimerManager().SetTimer(UIRefreshHandle, [this]() { FFantasyUITheme::ApplyToViewport(GetWorld()); }, 0.5f, true);
 
 	RoundManager = Cast<ARoundManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ARoundManager::StaticClass()));
 
@@ -52,6 +55,7 @@ FFantasyUITheme::ApplyToViewport(GetWorld());
 
 	OnExpChanged.Broadcast(PlayerLevel, Exp, MaxExp);
 
+	if (UGameplayStatics::ParseOption(OptionsString, TEXT("StartBattle")) == TEXT("1")) return;
 	UClass* WidgetClass = StaticLoadClass(
 		UMainMenuWidget::StaticClass(),
 		nullptr,
@@ -120,7 +124,11 @@ void ATowerDefenseGameMode::TriggerGameOver()
 	{
 		RoundManager->StopRounds();
 	}
-	OnGameOver.Broadcast();
+
+    OnGameOver.Broadcast();
+    UClass* ResultClass=LoadClass<UBattleResultWidget>(nullptr,TEXT("/Game/03_UI/WBP_BattleResult.WBP_BattleResult_C"));
+    if (ResultClass) if (UBattleResultWidget* Result=CreateWidget<UBattleResultWidget>(GetWorld(),ResultClass)) Result->AddToViewport(100);
+
 }
 
 // 라운드 스킵(Skip) 관련

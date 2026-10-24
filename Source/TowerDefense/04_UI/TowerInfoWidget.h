@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -15,6 +15,7 @@ class TOWERDEFENSE_API UTowerInfoWidget : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
 
 public:
 

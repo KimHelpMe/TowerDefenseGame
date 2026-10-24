@@ -1,4 +1,4 @@
-﻿#include "BaseTower.h"
+#include "BaseTower.h"
 #include "TowerSlot.h"
 #include "TowerStatComponent.h"
 #include "TowerInfoWidget.h"
@@ -82,6 +82,9 @@ void ABaseTower::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 void ABaseTower::BeginPlay()
 {
 	Super::BeginPlay();
+    for (UPrimitiveComponent* Component : { static_cast<UPrimitiveComponent*>(TowerMeshComponent), static_cast<UPrimitiveComponent*>(TurretStaticMeshComponent), static_cast<UPrimitiveComponent*>(TurretSkeletalMeshComponent) })
+        if (Component && !Component->OnClicked.IsBound()) Component->OnClicked.AddUniqueDynamic(this, &ABaseTower::OnTowerClicked);
+
 
 	ASynergyManager* SynergyManager = Cast<ASynergyManager>(
 		UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));

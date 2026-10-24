@@ -1,4 +1,4 @@
-﻿#include "TowerSlot.h"
+#include "TowerSlot.h"
 #include "BaseTower.h"
 #include "GachaManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -40,7 +40,11 @@ void ATowerSlot::Tick(float DeltaTime)
 void ATowerSlot::OnClickedSelect(UPrimitiveComponent* TouchedComponent, FKey ButtonPressed)
 {
 	if (!GachaManager) return;
-	if (bIsOccupied) return;
+	if (bIsOccupied)
+    {
+        if (IsValid(InstalledTower)) InstalledTower->OnTowerClicked(TouchedComponent, ButtonPressed);
+        return;
+    }
 	GachaManager->OpenGacha(this);
 }
 

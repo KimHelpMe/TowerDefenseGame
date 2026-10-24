@@ -1,9 +1,20 @@
-#include "FantasyUITheme.h"
+﻿#include "FantasyUITheme.h"
+#include "UIEffectFormatting.h"
+#include "SynergyManager.h"
+#include "GachaManager.h"
+#include "UObject/UnrealType.h"
+#include "TowerStatComponent.h"
+#include "BaseTower.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
+#include "Components/SizeBox.h"
+#include "Components/ScrollBox.h"
+#include "Components/HorizontalBox.h"
+#include "Components/Image.h"
 #include "Components/Button.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
@@ -25,12 +36,14 @@ namespace
 			return;
 		}
 
+		Widget->SetCursor(EMouseCursor::None);
 		const FString Name = Widget->GetName();
 		const FString LowerName = Name.ToLower();
 
 		if (UBorder* Border = Cast<UBorder>(Widget))
 		{
-			if (LowerName.Contains(TEXT("divider")))
+            if (Border->Background.GetResourceObject()) { Border->SetBrushColor(FLinearColor::White); return; }
+			if (LowerName.Contains(TEXT("goldframe")) || LowerName.Contains(TEXT("divider")))
 			{
 				Border->SetBrushColor(FLinearColor(0.48f, 0.36f, 0.19f, 0.9f));
 			}
@@ -107,6 +120,99 @@ namespace
 			return;
 		}
 		Visited.Add(Widget);
+        if (Widget->GetClass()->GetName().Contains(TEXT("GachaCard")))
+        {
+            AGachaManager* Manager = Cast<AGachaManager>(UGameplayStatics::GetActorOfClass(Widget, AGachaManager::StaticClass()));
+            FIntProperty* IndexProperty = FindFProperty<FIntProperty>(Widget->GetClass(), TEXT("CardIndex"));
+            if (Manager && IndexProperty)
+            {
+                const TArray<FGachaCardInfo> Infos = Manager->BuildCardInfos(Manager->CurrentRollResult);
+                const int32 Index = IndexProperty->GetPropertyValue_InContainer(Widget);
+                if (Infos.IsValidIndex(Index))
+                {
+                    if (UTextBlock* Info = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_Info")))) Info->SetText(FText::FromString(Infos[Index].Description));
+                    if (UTextBlock* Type = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_AttackType")))) Type->SetText(FText::FromString(Infos[Index].AttackType));
+                }
+            }
+        }
+
+        if (Widget->GetClass()->GetName().Contains(TEXT("SynergyBar")))
+        {
+            ASynergyManager* Manager = Cast<ASynergyManager>(UGameplayStatics::GetActorOfClass(Widget, ASynergyManager::StaticClass()));
+            UScrollBox* List = Cast<UScrollBox>(Widget->GetWidgetFromName(TEXT("SynergyList")));
+            if (Manager && Manager->SynergyDataTable && List)
+            {
+                TArray<FSynergyDataRow*> Rows; Manager->SynergyDataTable->GetAllRows(TEXT("Synergy list"), Rows);
+                UClass* RowClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/03_UI/01_SynergyUI/WBP_SynergyRow.WBP_SynergyRow_C"));
+                for (const FSynergyDataRow* Row : Rows)
+                {
+                    bool bFound = false;
+                    for (int32 Index = 0; Index < List->GetChildrenCount(); ++Index)
+                    {
+                        UUserWidget* Child = Cast<UUserWidget>(List->GetChildAt(Index));
+                        UTextBlock* Label = Child ? Cast<UTextBlock>(Child->GetWidgetFromName(TEXT("SynergyName"))) : nullptr;
+                        if (Label && Label->GetText().ToString() == Row->SynergyDisplayName) { bFound = true; break; }
+                    }
+                    if (bFound || !RowClass) continue;
+                    UUserWidget* Child = CreateWidget<UUserWidget>(Widget->GetWorld(), RowClass);
+                    if (!Child) continue;
+                    List->AddChild(Child);
+                    if (UTextBlock* Label = Cast<UTextBlock>(Child->GetWidgetFromName(TEXT("SynergyName")))) Label->SetText(FText::FromString(Row->SynergyDisplayName));
+                    if (UImage* Icon = Cast<UImage>(Child->GetWidgetFromName(TEXT("SynergyIcon")))) Icon->SetBrushFromTexture(Row->SynergyIcon);
+                    if (UHorizontalBox* Segments = Cast<UHorizontalBox>(Child->GetWidgetFromName(TEXT("SegmentBox"))))
+                        for (const FSynergyStep& Step : Row->Steps)
+                        {
+                            UTextBlock* Threshold = Child->WidgetTree->ConstructWidget<UTextBlock>();
+                            Threshold->SetText(FText::FromString(FString::Printf(TEXT(" %d "), Step.RequireCount)));
+                            FSlateFontInfo Font = Threshold->GetFont(); Font.Size=12; Threshold->SetFont(Font); Segments->AddChild(Threshold);
+                        }
+                }
+            }
+        }
+
+        if (Widget->GetClass()->GetName().Contains(TEXT("SynergyRow")))
+        {
+            UTextBlock* NameText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("SynergyName")));
+            ASynergyManager* Manager = Cast<ASynergyManager>(UGameplayStatics::GetActorOfClass(Widget, ASynergyManager::StaticClass()));
+            if (NameText && Manager && Manager->SynergyDataTable)
+            {
+                TArray<FSynergyDataRow*> Rows; Manager->SynergyDataTable->GetAllRows(TEXT("Synergy UI"), Rows);
+                for (const FSynergyDataRow* Row : Rows)
+                {
+                    if (Row->SynergyDisplayName != NameText->GetText().ToString()) continue;
+                    const int32 Count = Manager->SynergyCountMap.FindRef(Row->SynergyTag);
+                    Widget->SetVisibility(ESlateVisibility::Visible);
+                    if (UTextBlock* CountText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("CountText")))) CountText->SetText(FText::AsNumber(Count));
+                    FString Detail = FString::Printf(TEXT("%s · 현재 %d스택\n\n단계별 효과\n"), *Row->SynergyDisplayName, Count);
+                    FString ActiveEffect;
+                    for (const FSynergyStep& Step : Row->Steps)
+                    {
+                        FString Effects = Step.EffectDesc;
+                        for (const FBuffEffect& Effect : Step.Effects)
+                            Effects += FString::Printf(TEXT("\n%s %+.2f%s"), *TowerUI::TagName(Effect.StatTag), Effect.ValueType == EBuffValueType::Percent ? Effect.Value*100.f : Effect.Value, Effect.ValueType == EBuffValueType::Percent ? TEXT("%") : TEXT(""));
+                        Detail += FString::Printf(TEXT("%s %d스택: %s\n"), Count >= Step.RequireCount ? TEXT("[활성]") : TEXT("[미달]"), Step.RequireCount, *Effects);
+                        if (Count >= Step.RequireCount) ActiveEffect = Effects.TrimStartAndEnd();
+                    }
+                    Detail += TEXT("\n스택에 기여한 타워\n");
+                    for (ABaseTower* Tower : Manager->FieldTowers)
+                    {
+                        UTowerStatComponent* Stat = IsValid(Tower) ? Tower->GetComponentByClass<UTowerStatComponent>() : nullptr;
+                        if (Stat && Stat->SynergyTags.HasTag(Row->SynergyTag)) Detail += FString::Printf(TEXT("%s · Lv.%d\n"), *Stat->TowerName, Stat->CurrentLevel);
+                    }
+
+                    UUserWidget* Tip = Cast<UUserWidget>(Widget->GetToolTip());
+                    if (!Tip)
+                    {
+                        UClass* TipClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/03_UI/01_SynergyUI/WBP_SynergyTooltip.WBP_SynergyTooltip_C"));
+                        if (TipClass) { Tip = CreateWidget<UUserWidget>(Widget->GetWorld(), TipClass); Widget->SetToolTip(Tip); }
+                    }
+                    if (Tip) if (UTextBlock* Text = Cast<UTextBlock>(Tip->GetWidgetFromName(TEXT("TooltipBody")))) Text->SetText(FText::FromString(Detail));
+                    if (UTextBlock* EffectText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("EffectText")))) EffectText->SetText(FText::FromString(ActiveEffect.IsEmpty() ? FString::Printf(TEXT("미활성 · %d기 필요"), Row->Steps.IsEmpty() ? 0 : FMath::Max(0, Row->Steps[0].RequireCount-Count)) : ActiveEffect));
+                    break;
+                }
+            }
+        }
+
 
 		TArray<UWidget*> Children;
 		Widget->WidgetTree->ForEachWidget([&Children](UWidget* Child)
