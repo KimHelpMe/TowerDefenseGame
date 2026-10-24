@@ -18,6 +18,7 @@ class ACommandManager;
 class UStatComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTokenChanged, float, NewToken);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGoldChanged, float, NewGold);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnExpChanged, int32, NewLevel, float, NewExp, float, NewMaxExp);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameOver);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnVictory);
@@ -49,6 +50,10 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnTokenChanged OnTokenChanged;
+
+	// 골드가 바뀔 때마다 호출(UI가 매 프레임 Gold를 읽지 않고 이벤트로 갱신할 수 있게).
+	UPROPERTY(BlueprintAssignable)
+	FOnGoldChanged OnGoldChanged;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game State")
 	bool bIsGameOver;
@@ -117,6 +122,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void AddTowerToken(float Amount);
+
+	// 골드 증감은 이 함수로 해야 OnGoldChanged가 호출된다(음수 = 사용).
+	UFUNCTION(BlueprintCallable)
+	void AddGold(float Amount);
 
 
 protected:

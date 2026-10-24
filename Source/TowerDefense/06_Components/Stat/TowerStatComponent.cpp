@@ -184,7 +184,7 @@ void UTowerStatComponent::LevelUp()
 
 	NewTower->OwnerSlot = OldOwnerSlot;
 	OldOwnerSlot->InstalledTower = NewTower;
-	GameMode->Gold -= Row->GoldCost;
+	GameMode->AddGold(-Row->GoldCost);
 
 	if (OldTower->TowerInfoWidget && OldTower->TowerInfoWidget->IsInViewport())
 	{
