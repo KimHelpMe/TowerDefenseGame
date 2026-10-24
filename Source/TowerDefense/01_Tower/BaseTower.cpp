@@ -5,6 +5,7 @@
 #include "TowerRangeDecalComponent.h"
 #include "SynergyManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "EpicTowerManager.h"
 
 ABaseTower::ABaseTower()
@@ -228,6 +229,14 @@ void ABaseTower::OnTowerClicked(UPrimitiveComponent* TouchedComponent, FKey Butt
 
 	UTowerStatComponent* TowerStat = GetComponentByClass<UTowerStatComponent>();
 	if (!TowerStat) return;
+
+	// 다른 타워의 정보창이 열려 있으면 닫아 정보창과 사거리 표시를 하나만 유지.
+	TArray<UUserWidget*> OpenInfoWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, OpenInfoWidgets, UTowerInfoWidget::StaticClass(), true);
+	for (UUserWidget* OpenWidget : OpenInfoWidgets)
+	{
+		if (UTowerInfoWidget* OtherInfo = Cast<UTowerInfoWidget>(OpenWidget)) OtherInfo->CloseWidget();
+	}
 
 	TSubclassOf<UTowerInfoWidget> InfoWidgetClass = TowerInfoWidgetClass;
 	if (!InfoWidgetClass)
