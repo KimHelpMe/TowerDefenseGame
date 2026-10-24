@@ -23,25 +23,25 @@ public:
 	virtual void UnPossessed() override;
 
 	UPROPERTY(EditAnywhere)
-	UInputMappingContext* CameraIMC;
+	TObjectPtr<UInputMappingContext> CameraIMC;
 
 	UPROPERTY(EditAnywhere)
-	UInputAction* MoveAction;
+	TObjectPtr<UInputAction> MoveAction;
 
 	UPROPERTY(EditAnywhere)
-	UInputAction* ZoomAction;
+	TObjectPtr<UInputAction> ZoomAction;
 
 	void Move(const FInputActionValue& Value);
 	void Zoom(const FInputActionValue& Value);
 
 	UPROPERTY(EditAnywhere)
-	USceneComponent* RootScene;
+	TObjectPtr<USceneComponent> RootScene;
 
 	UPROPERTY(EditAnywhere)
-	USpringArmComponent* SpringArm;
+	TObjectPtr<USpringArmComponent> SpringArm;
 
 	UPROPERTY(EditAnywhere)
-	UCameraComponent* Camera;
+	TObjectPtr<UCameraComponent> Camera;
 
 	UPROPERTY(EditAnywhere)
 	float MoveSpeed;

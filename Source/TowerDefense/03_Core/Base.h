@@ -22,7 +22,7 @@ public:
 	float BaseMaxHp;
 
 	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* BaseMeshComponent;
+	TObjectPtr<UStaticMeshComponent> BaseMeshComponent;
 
 	UFUNCTION()
 	void ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat);

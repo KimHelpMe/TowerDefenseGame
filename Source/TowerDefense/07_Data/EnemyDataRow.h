@@ -46,19 +46,19 @@ public:
 
 	// 외형
 	UPROPERTY(EditAnywhere)
-	USkeletalMesh* EnemyMesh = nullptr;
+	TObjectPtr<USkeletalMesh> EnemyMesh = nullptr;
 
 	UPROPERTY(EditAnywhere)
-	UMaterialInstance* EnemyMaterial = nullptr;
+	TObjectPtr<UMaterialInstance> EnemyMaterial = nullptr;
 
 	UPROPERTY(EditAnywhere)
-	UNiagaraSystem* EnemyEffect = nullptr;
+	TObjectPtr<UNiagaraSystem> EnemyEffect = nullptr;
 
 	UPROPERTY(EditAnywhere)
-	UTexture2D* Icon = nullptr;
+	TObjectPtr<UTexture2D> Icon = nullptr;
 
 	UPROPERTY(EditAnywhere)
-	USoundBase* Sound = nullptr;
+	TObjectPtr<USoundBase> Sound = nullptr;
 
 	// 공중 여부.
 

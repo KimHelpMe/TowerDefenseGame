@@ -18,16 +18,16 @@ public:
 
 
 	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* TileMesh;
+	TObjectPtr<UStaticMeshComponent> TileMesh;
 
 	UPROPERTY()
-	UMaterialInstanceDynamic* TileMaterial;
+	TObjectPtr<UMaterialInstanceDynamic> TileMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UStaticMeshComponent* OutlineMesh;
+	TObjectPtr<UStaticMeshComponent> OutlineMesh;
 
 	UPROPERTY(VisibleAnywhere)
-	AGridManager* GridManager;
+	TObjectPtr<AGridManager> GridManager;
 
 public:
 

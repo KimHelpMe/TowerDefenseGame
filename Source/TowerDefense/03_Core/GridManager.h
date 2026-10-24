@@ -19,13 +19,13 @@ public:
 	TArray<AGridTile*> GridTiles;
 
 	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* PreviewMesh;
+	TObjectPtr<UStaticMeshComponent> PreviewMesh;
 
 	UPROPERTY()
-	UMaterialInstanceDynamic* PreviewMaterial;
+	TObjectPtr<UMaterialInstanceDynamic> PreviewMaterial;
 
 	UPROPERTY(EditAnywhere)
-	UMaterialInterface* PreviewMaterialBase;
+	TObjectPtr<UMaterialInterface> PreviewMaterialBase;
 
 public:
 

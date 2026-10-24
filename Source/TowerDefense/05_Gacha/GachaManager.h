@@ -86,7 +86,7 @@ public:
 
 	// 생성된 UI 인스턴스 참조.
 	UPROPERTY(VisibleAnywhere)
-	UGachaWidget* GachaWidget;
+	TObjectPtr<UGachaWidget> GachaWidget;
 
 protected:
 

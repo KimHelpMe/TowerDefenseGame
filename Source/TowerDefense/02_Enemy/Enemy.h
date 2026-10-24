@@ -23,18 +23,18 @@ public:
 	AEnemy();
 	
 	UPROPERTY(VisibleAnywhere)
-	ABase* Base;
+	TObjectPtr<ABase> Base;
 
 	// AEnemySplinePath를 참조하기 위한 변수 선언.
 	UPROPERTY(EditAnywhere)
-	AEnemySplinePath* splinePath;
+	TObjectPtr<AEnemySplinePath> splinePath;
 
 	// Spline 안에서 이동한 적의 현재 위치.
 	UPROPERTY(VisibleAnywhere)
 	float CurrentSplinePoint;
 
 	UPROPERTY(EditAnywhere)
-	USkeletalMeshComponent* EnemyMeshComponent;
+	TObjectPtr<USkeletalMeshComponent> EnemyMeshComponent;
 
 	// 재화 보상
 	UPROPERTY(EditAnywhere)
@@ -45,15 +45,15 @@ public:
 
 
 	UPROPERTY(EditAnywhere)
-	UEnemyStatComponent* EnemyStatComponent;
+	TObjectPtr<UEnemyStatComponent> EnemyStatComponent;
 
 	// 실드량
 	UPROPERTY(EditAnywhere)
-	UShieldAbilityComponent* ShieldComponent;
+	TObjectPtr<UShieldAbilityComponent> ShieldComponent;
 
 	// 분열
 	UPROPERTY(EditAnywhere)
-	USplitAbilityComponent* SplitComponent;
+	TObjectPtr<USplitAbilityComponent> SplitComponent;
 
 
 protected:

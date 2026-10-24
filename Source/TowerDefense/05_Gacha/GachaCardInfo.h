@@ -16,7 +16,7 @@ struct FGachaCardInfo
     FString Grade;
 
     UPROPERTY(BlueprintReadWrite)
-    UTexture2D* Icon = nullptr;
+    TObjectPtr<UTexture2D> Icon = nullptr;
 
     UPROPERTY(BlueprintReadWrite)
     FString AttackType;

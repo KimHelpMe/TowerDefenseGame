@@ -24,7 +24,7 @@ public:
 public:
 
 	UPROPERTY(EditAnywhere)
-	UDataTable* EpicTowerDataTable = nullptr;
+	TObjectPtr<UDataTable> EpicTowerDataTable = nullptr;
 
 	UPROPERTY(VisibleAnywhere)
 	TArray<TSubclassOf<AActor>> UnlockedEpicTowers;

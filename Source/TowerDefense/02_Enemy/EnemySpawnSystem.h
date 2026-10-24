@@ -23,7 +23,7 @@ public:
 
 	//스폰 위치 좌표
 	UPROPERTY(EditAnywhere)
-	AEnemySplinePath* splinePath;
+	TObjectPtr<AEnemySplinePath> splinePath;
 
 	//스폰 간격
 	UPROPERTY(EditAnywhere)

@@ -25,7 +25,7 @@ struct FBuffEffect
     EBuffValueType ValueType = EBuffValueType::Flat;
 
     UPROPERTY()
-    AActor* Source = nullptr;
+    TObjectPtr<AActor> Source = nullptr;
 
     UPROPERTY()
     FName SourceKey = NAME_None;
