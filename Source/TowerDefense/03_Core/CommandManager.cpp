@@ -4,6 +4,7 @@
 #include "Base.h"
 #include "BossEnemy.h"
 #include "Enemy.h"
+#include "TowerDefenseGameMode.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -55,7 +56,12 @@ bool ACommandManager::CanPurge()
 void ACommandManager::HealBase()
 {
 	if (CanHeal() == false) return;
-	if (!Base) return;
+	// 본진이 파괴되었거나 게임이 끝난 뒤에는 회복하지 않음.
+	if (!IsValid(Base) || Base->BaseHp <= 0.f) return;
+	if (const ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(this)))
+	{
+		if (GameMode->bIsGameOver) return;
+	}
 
 	float HealAmount = Base->BaseMaxHp * 0.3f;
 	Base->BaseHp = FMath::Min(Base->BaseHp + HealAmount, Base->BaseMaxHp);

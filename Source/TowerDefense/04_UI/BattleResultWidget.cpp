@@ -19,7 +19,7 @@ void UBattleResultWidget::NativeConstruct()
             if (UTextBlock* Subtitle=Cast<UTextBlock>(GetWidgetFromName(TEXT("ResultSubtitle")))) Subtitle->SetText(FText::FromString(TEXT("모든 라운드를 방어했습니다.")));
         }
         const int32 Seconds=FMath::FloorToInt(GetWorld()->GetTimeSeconds());
-        const FString Report=FString::Printf(TEXT("도달 라운드  %d / 30\n배치 타워  %d\n전투 시간  %02d:%02d"),Mode->RoundManager ? Mode->RoundManager->CurrentRound : 0,Mode->CurrentTowerSlot,Seconds/60,Seconds%60);
+        const FString Report=FString::Printf(TEXT("도달 라운드  %d / %d\n배치 타워  %d\n전투 시간  %02d:%02d"),Mode->RoundManager ? Mode->RoundManager->CurrentRound : 0,Mode->RoundManager ? Mode->RoundManager->MaxRound : 0,Mode->CurrentTowerSlot,Seconds/60,Seconds%60);
         if (UTextBlock* Text=Cast<UTextBlock>(GetWidgetFromName(TEXT("ResultStats")))) Text->SetText(FText::FromString(Report));
     }
     UGameplayStatics::SetGamePaused(this,true);

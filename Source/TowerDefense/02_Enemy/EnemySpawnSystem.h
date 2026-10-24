@@ -31,10 +31,10 @@ public:
 
 	// 라운드 당 스폰할 수
 	UPROPERTY(EditAnywhere)
-	float SpawnCount;
+	int32 SpawnCount;
 
 	UPROPERTY(EditAnywhere)
-	float CurrentSpawnCount;
+	int32 CurrentSpawnCount;
 
 protected:
 
