@@ -6,7 +6,7 @@
 AEnemySpawnSystem::AEnemySpawnSystem()
 {
  	
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 
 	// 기본값 설정
 	SpawnDelay = 1.0f;

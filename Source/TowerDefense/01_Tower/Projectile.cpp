@@ -7,7 +7,7 @@
 
 AProjectile::AProjectile()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 
 	// SphereComponent 생성
 	sphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));

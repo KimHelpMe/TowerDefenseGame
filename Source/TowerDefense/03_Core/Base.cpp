@@ -6,7 +6,7 @@
 ABase::ABase()
 {
  	
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 
 	BaseHp = 100.f;
 	BaseMaxHp = BaseHp;

@@ -15,7 +15,7 @@
 
 AGachaManager::AGachaManager()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 
 	// 확률 생성자
 	CommonPoolRate = 40.f;

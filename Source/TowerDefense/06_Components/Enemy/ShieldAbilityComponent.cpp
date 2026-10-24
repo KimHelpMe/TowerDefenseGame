@@ -3,7 +3,7 @@
 
 UShieldAbilityComponent::UShieldAbilityComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false; // Tick does nothing; BP Event Tick re-enables it on compile.
 
 	ShieldAmount = 100.f;
 	MaxShieldAmount = 100.f;
