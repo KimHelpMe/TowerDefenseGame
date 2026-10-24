@@ -144,13 +144,16 @@ void UTowerStatComponent::LevelUp()
 	FTowerDataRow* Row = TowerDataTable->FindRow<FTowerDataRow>(FName(*RowKeyString), TEXT(""));
 	if (!Row || GameMode->Gold < Row->GoldCost) return;
 
-	ABaseTower* NewTower = GetWorld()->SpawnActor<ABaseTower>(
-		OldTower->NextLevelClass, OldTower->GetActorLocation(), FRotator::ZeroRotator);
+	// 지연 생성으로 BeginPlay 전에 레벨/데이터를 설정해, BeginPlay의 InitFromDataTable과
+	// 시너지 등록이 처음부터 다음 레벨 기준으로 이뤄지게 한다.
+	const FTransform SpawnTransform(FRotator::ZeroRotator, OldTower->GetActorLocation());
+	ABaseTower* NewTower = GetWorld()->SpawnActorDeferred<ABaseTower>(OldTower->NextLevelClass, SpawnTransform);
 	if (!IsValid(NewTower)) return;
 
 	UTowerStatComponent* NewTowerStat = NewTower->TowerStatComponent;
 	if (!IsValid(NewTowerStat))
 	{
+		NewTower->FinishSpawning(SpawnTransform);
 		NewTower->Destroy();
 		return;
 	}
@@ -158,23 +161,24 @@ void UTowerStatComponent::LevelUp()
 	NewTowerStat->TowerDataTable = TowerDataTable;
 	NewTowerStat->TowerRowName = TowerRowName;
 	NewTowerStat->CurrentLevel = CurrentLevel + 1;
-	NewTowerStat->InitFromDataTable();
 	// 이전 타워의 ActiveBuffs는 복사하지 않는다. 다른 타워의 Active 버프가 복사되면
 	// 버프를 준 쪽의 PreviousTargets에 새 타워가 없어 지속시간이 끝나도 지워지지 않는다.
-	// 시너지는 아래 UnregisterTower(OldTower)에서 다시 계산되고, Passive 버프는 다음 주기에 다시 적용된다.
+	// 시너지는 새 타워 등록 시 다시 계산되고, Passive 버프는 다음 주기에 다시 적용된다.
+
+	// 새 타워가 등록되기 전에 이전 타워를 목록에서 뺀다. 두 타워가 동시에 목록에 있으면
+	// 시너지 수와 에픽 조건 검사(RegisterTower → CheckConditions)가 한 개 더 있는 것으로 계산된다.
+	ASynergyManager* SynergyManager = Cast<ASynergyManager>(
+		UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));
+	if (SynergyManager)
+	{
+		SynergyManager->UnregisterTower(OldTower);
+	}
+
+	NewTower->FinishSpawning(SpawnTransform);
 
 	NewTower->OwnerSlot = OldOwnerSlot;
 	OldOwnerSlot->InstalledTower = NewTower;
 	GameMode->Gold -= Row->GoldCost;
-
-	ASynergyManager* SynergyManager = Cast<ASynergyManager>(
-		UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));
-	AEpicTowerManager* EpicManager = Cast<AEpicTowerManager>(
-		UGameplayStatics::GetActorOfClass(GetWorld(), AEpicTowerManager::StaticClass()));
-	if (EpicManager && SynergyManager)
-	{
-		EpicManager->CheckConditions(SynergyManager->FieldTowers);
-	}
 
 	if (OldTower->TowerInfoWidget && OldTower->TowerInfoWidget->IsInViewport())
 	{
@@ -183,10 +187,6 @@ void UTowerStatComponent::LevelUp()
 		NewTower->OnTowerClicked(nullptr, FKey());
 	}
 
-	if (SynergyManager)
-	{
-		SynergyManager->UnregisterTower(OldTower);
-	}
 	OldTower->Destroy();
 }
 
