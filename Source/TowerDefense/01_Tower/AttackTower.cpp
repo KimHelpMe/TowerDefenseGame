@@ -64,9 +64,15 @@ void AAttackTower::RefreshAttackTimer()
 	GetWorldTimerManager().SetTimer(
 		AttackTimerHandle,
 		this,
-		&AAttackTower::Attack_Implementation,
+		&AAttackTower::HandleAttackTimer,
 		FinalAttackSpeed,
 		true);
+}
+
+void AAttackTower::HandleAttackTimer()
+{
+	// BlueprintNativeEvent 진입점으로 호출해야 BP에서 Attack을 override했을 때도 그 구현이 실행된다.
+	Attack();
 }
 void AAttackTower::Tick(float DeltaTime)
 {
