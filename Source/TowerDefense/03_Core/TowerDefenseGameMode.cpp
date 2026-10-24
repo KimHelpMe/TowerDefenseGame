@@ -155,7 +155,7 @@ void ATowerDefenseGameMode::ShowBattleResult()
 bool ATowerDefenseGameMode::CanSkip()
 {
 	if (!RoundManager) return false;
-	if (RoundManager->CurrentTimer <= RoundManager->RoundTimer - 50 && RoundManager->CurrentRound < 30)
+	if (RoundManager->CurrentTimer <= RoundManager->RoundTimer - 50 && RoundManager->CurrentRound < RoundManager->MaxRound)
 	{
 		return true;
 	}
