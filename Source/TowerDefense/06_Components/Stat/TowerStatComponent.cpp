@@ -4,6 +4,7 @@
 #include "SingleAttackComponent.h"
 #include "MultiAttackComponent.h"
 #include "BaseTower.h"
+#include "AttackTower.h"
 #include "TowerInfoWidget.h"
 #include "EpicTowerManager.h"
 #include "SynergyManager.h"
@@ -37,6 +38,14 @@ void UTowerStatComponent::RecalculateStats()
 		: 0.f;
 	const float FinalAttackRange = FMath::Max(0.f, BaseRange * (1.f + AttackRangeBonus));
 	Tower->TowerAttackRangeComponent->SetSphereRadius(FinalAttackRange);
+
+	// 버프·시너지로 바뀐 공격속도를 공격 타이머에 반영한다.
+	// 버프는 제거 후 재적용되므로 같은 프레임의 변경을 모아 다음 틱에 한 번 확인한다.
+	AAttackTower* AttackTower = Cast<AAttackTower>(Tower);
+	if (AttackTower && AttackTower->HasActorBegunPlay() && GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimerForNextTick(AttackTower, &AAttackTower::RefreshAttackTimer);
+	}
 }
 
 

@@ -53,6 +53,14 @@ void AAttackTower::RefreshAttackTimer()
 		? FMath::Max(0.01f, BaseAttackSpeed * (1.f - SafeAttackSpeedBonus))
 		: 1.f;
 
+	// 간격이 그대로면 타이머를 다시 걸지 않는다(버프 재적용마다 공격 주기가 리셋되는 것 방지).
+	if (GetWorldTimerManager().IsTimerActive(AttackTimerHandle)
+		&& FMath::IsNearlyEqual(AppliedAttackInterval, FinalAttackSpeed))
+	{
+		return;
+	}
+	AppliedAttackInterval = FinalAttackSpeed;
+
 	GetWorldTimerManager().SetTimer(
 		AttackTimerHandle,
 		this,

@@ -59,4 +59,7 @@ private:
 	//타이머 제어에 필요한 핸들, 타워도 일정 간격으로 발사해야함.
 	FTimerHandle AttackTimerHandle;
 
+	// 현재 공격 타이머에 적용된 간격(초).
+	float AppliedAttackInterval = -1.f;
+
 };
