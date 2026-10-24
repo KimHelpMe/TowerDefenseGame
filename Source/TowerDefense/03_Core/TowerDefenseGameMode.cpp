@@ -126,9 +126,29 @@ void ATowerDefenseGameMode::TriggerGameOver()
 	}
 
     OnGameOver.Broadcast();
+    ShowBattleResult();
+
+}
+
+void ATowerDefenseGameMode::TriggerVictory()
+{
+	if (bIsGameOver) return;
+
+	bIsGameOver = true;
+	bIsVictory = true;
+	if (RoundManager)
+	{
+		RoundManager->StopRounds();
+	}
+
+	OnVictory.Broadcast();
+	ShowBattleResult();
+}
+
+void ATowerDefenseGameMode::ShowBattleResult()
+{
     UClass* ResultClass=LoadClass<UBattleResultWidget>(nullptr,TEXT("/Game/03_UI/WBP_BattleResult.WBP_BattleResult_C"));
     if (ResultClass) if (UBattleResultWidget* Result=CreateWidget<UBattleResultWidget>(GetWorld(),ResultClass)) Result->AddToViewport(100);
-
 }
 
 // 라운드 스킵(Skip) 관련

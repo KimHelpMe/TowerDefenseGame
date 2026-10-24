@@ -13,6 +13,11 @@ void UBattleResultWidget::NativeConstruct()
     if (UButton* Button=Cast<UButton>(GetWidgetFromName(TEXT("MenuButton")))) Button->OnClicked.AddUniqueDynamic(this,&UBattleResultWidget::ReturnToMenu);
     if (ATowerDefenseGameMode* Mode=Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(this)))
     {
+        if (Mode->bIsVictory)
+        {
+            if (UTextBlock* Title=Cast<UTextBlock>(GetWidgetFromName(TEXT("ResultTitle")))) Title->SetText(FText::FromString(TEXT("승리")));
+            if (UTextBlock* Subtitle=Cast<UTextBlock>(GetWidgetFromName(TEXT("ResultSubtitle")))) Subtitle->SetText(FText::FromString(TEXT("모든 라운드를 방어했습니다.")));
+        }
         const int32 Seconds=FMath::FloorToInt(GetWorld()->GetTimeSeconds());
         const FString Report=FString::Printf(TEXT("도달 라운드  %d / 30\n배치 타워  %d\n전투 시간  %02d:%02d"),Mode->RoundManager ? Mode->RoundManager->CurrentRound : 0,Mode->CurrentTowerSlot,Seconds/60,Seconds%60);
         if (UTextBlock* Text=Cast<UTextBlock>(GetWidgetFromName(TEXT("ResultStats")))) Text->SetText(FText::FromString(Report));

@@ -19,6 +19,7 @@ class ACommandManager;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTokenChanged, float, NewToken);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnExpChanged, int32, NewLevel, float, NewExp, float, NewMaxExp);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameOver);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnVictory);
 
 UCLASS()
 class TOWERDEFENSE_API ATowerDefenseGameMode : public AGameModeBase
@@ -56,6 +57,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Game State")
 	void TriggerGameOver();
+
+	// 마지막 라운드를 정리하면 true. 결과 위젯이 승리/패배 문구를 고를 때 사용.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game State")
+	bool bIsVictory = false;
+
+	UPROPERTY(BlueprintAssignable, Category = "Game State")
+	FOnVictory OnVictory;
+
+	UFUNCTION(BlueprintCallable, Category = "Game State")
+	void TriggerVictory();
 
 	// Level.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -107,6 +118,9 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+
+	// 게임 종료(승리/패배) 결과 위젯 표시.
+	void ShowBattleResult();
 
 public:
 
