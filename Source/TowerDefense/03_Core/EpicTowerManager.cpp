@@ -107,13 +107,13 @@ void AEpicTowerManager::CheckConditions(const TArray<ABaseTower*>& FieldTowers)
 	}
 }
 
-void AEpicTowerManager::FuseEpicTower(
+bool AEpicTowerManager::FindFusionMaterials(
 	TSubclassOf<AActor> EpicTowerClass,
 	const TArray<ABaseTower*>& FieldTowers,
-	AGachaManager* GachaManager,
-	ASynergyManager* SynergyManager)
+	TArray<ABaseTower*>& OutMaterials) const
 {
-	if (!EpicTowerDataTable || !EpicTowerClass) return;
+	OutMaterials.Reset();
+	if (!EpicTowerDataTable || !EpicTowerClass) return false;
 
 	TArray<FName> RowNames = EpicTowerDataTable->GetRowNames();
 	for (FName RowName : RowNames)
@@ -121,15 +121,13 @@ void AEpicTowerManager::FuseEpicTower(
 		FEpicTowerDataRow* Row = EpicTowerDataTable->FindRow<FEpicTowerDataRow>(RowName, TEXT(""));
 		if (!Row || Row->EpicTowerClass != EpicTowerClass) continue;
 
-		TArray<ABaseTower*> TowersToConsume;
 		TSet<ABaseTower*> MatchedTowers;
-		bool bCanFuse = true;
 		for (const FEpicTowerConditionEntry& Condition : Row->Conditions)
 		{
 			if (!Condition.TowerClass)
 			{
-				bCanFuse = false;
-				break;
+				OutMaterials.Reset();
+				return false;
 			}
 
 			ABaseTower* MatchedTower = nullptr;
@@ -149,44 +147,72 @@ void AEpicTowerManager::FuseEpicTower(
 
 			if (!IsValid(MatchedTower))
 			{
-				bCanFuse = false;
-				break;
+				OutMaterials.Reset();
+				return false;
 			}
 
 			MatchedTowers.Add(MatchedTower);
-			TowersToConsume.Add(MatchedTower);
+			OutMaterials.Add(MatchedTower);
 		}
+		return true;
+	}
+	return false;
+}
 
-		// 재료를 모두 찾은 경우에만 슬롯과 타워를 소비.
-		if (!bCanFuse) return;
+void AEpicTowerManager::ConsumeFusionMaterials(
+	TSubclassOf<AActor> EpicTowerClass,
+	const TArray<ABaseTower*>& Materials,
+	AGachaManager* GachaManager,
+	ASynergyManager* SynergyManager)
+{
+	for (ABaseTower* Tower : Materials)
+	{
+		if (!IsValid(Tower)) continue;
 
-		for (ABaseTower* Tower : TowersToConsume)
+		if (SynergyManager)
 		{
-			if (!IsValid(Tower)) continue;
-
-			if (SynergyManager)
-			{
-				SynergyManager->UnregisterTower(Tower);
-			}
-
-			ATowerSlot* OwnerSlot = Tower->OwnerSlot;
-			if (IsValid(OwnerSlot) && OwnerSlot->InstalledTower == Tower)
-			{
-				OwnerSlot->InstalledTower = nullptr;
-				OwnerSlot->bIsOccupied = false;
-				OwnerSlot->ResetGachaState();
-				if (IsValid(OwnerSlot->TowerSlotMesh)) OwnerSlot->TowerSlotMesh->SetVisibility(true);
-			}
-
-			Tower->Destroy();
+			SynergyManager->UnregisterTower(Tower);
 		}
 
-		PendingFusionTowers.Remove(EpicTowerClass);
-		if (IsValid(GachaManager))
+		ATowerSlot* OwnerSlot = Tower->OwnerSlot;
+		if (IsValid(OwnerSlot) && OwnerSlot->InstalledTower == Tower)
 		{
-			GachaManager->PendingFusionTowers.Remove(EpicTowerClass);
+			OwnerSlot->InstalledTower = nullptr;
+			OwnerSlot->bIsOccupied = false;
+			OwnerSlot->ResetGachaState();
+			if (IsValid(OwnerSlot->TowerSlotMesh)) OwnerSlot->TowerSlotMesh->SetVisibility(true);
 		}
-		return;
+
+		Tower->Destroy();
+	}
+
+	PendingFusionTowers.Remove(EpicTowerClass);
+	if (IsValid(GachaManager))
+	{
+		GachaManager->PendingFusionTowers.Remove(EpicTowerClass);
+	}
+}
+
+bool AEpicTowerManager::FuseEpicTower(
+	TSubclassOf<AActor> EpicTowerClass,
+	const TArray<ABaseTower*>& FieldTowers,
+	AGachaManager* GachaManager,
+	ASynergyManager* SynergyManager)
+{
+	// 재료를 모두 찾은 경우에만 슬롯과 타워를 소비.
+	TArray<ABaseTower*> Materials;
+	if (!FindFusionMaterials(EpicTowerClass, FieldTowers, Materials)) return false;
+
+	ConsumeFusionMaterials(EpicTowerClass, Materials, GachaManager, SynergyManager);
+	return true;
+}
+
+void AEpicTowerManager::CancelPendingFusion(TSubclassOf<AActor> EpicTowerClass, AGachaManager* GachaManager)
+{
+	PendingFusionTowers.Remove(EpicTowerClass);
+	if (IsValid(GachaManager))
+	{
+		GachaManager->PendingFusionTowers.Remove(EpicTowerClass);
 	}
 }
 
