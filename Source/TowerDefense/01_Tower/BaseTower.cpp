@@ -102,6 +102,23 @@ void ABaseTower::BeginPlay()
 	}
 }
 
+void ABaseTower::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 어떤 경로로 파괴되든 시너지 목록에서 빠지도록 해제.
+	UWorld* World = GetWorld();
+	if (World && !World->bIsTearingDown)
+	{
+		ASynergyManager* SynergyManager = Cast<ASynergyManager>(
+			UGameplayStatics::GetActorOfClass(World, ASynergyManager::StaticClass()));
+		if (IsValid(SynergyManager))
+		{
+			SynergyManager->UnregisterTower(this);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 
 void ABaseTower::Tick(float DeltaTime)
 {
