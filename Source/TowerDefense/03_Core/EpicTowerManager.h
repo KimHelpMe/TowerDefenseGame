@@ -46,11 +46,26 @@ public:
 
 public:
 
+	// 합성 재료를 찾기만 한다(소비하지 않음). 모든 조건을 서로 다른 타워가 충족해야 true.
+	bool FindFusionMaterials(TSubclassOf<AActor> EpicTowerClass,
+		const TArray<ABaseTower*>& FieldTowers,
+		TArray<ABaseTower*>& OutMaterials) const;
+
+	// FindFusionMaterials로 찾은 재료 타워를 파괴하고 슬롯을 비운다.
+	void ConsumeFusionMaterials(TSubclassOf<AActor> EpicTowerClass,
+		const TArray<ABaseTower*>& Materials,
+		AGachaManager* GachaManager,
+		ASynergyManager* SynergyManager);
+
+	// 재료를 찾아 소비한다. 재료가 부족하면 아무것도 소비하지 않고 false.
 	UFUNCTION()
-	void FuseEpicTower(TSubclassOf<AActor> EpicTowerClass,
+	bool FuseEpicTower(TSubclassOf<AActor> EpicTowerClass,
 		const TArray<ABaseTower*>& FieldTowers,
 		AGachaManager* GachaManager,
 		ASynergyManager* SynergyManager);
+
+	// 조건이 더 이상 충족되지 않는 합성 카드를 대기 목록에서 제거.
+	void CancelPendingFusion(TSubclassOf<AActor> EpicTowerClass, AGachaManager* GachaManager);
 
 protected:
 

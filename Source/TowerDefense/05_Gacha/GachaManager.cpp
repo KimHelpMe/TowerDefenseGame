@@ -235,6 +235,30 @@ void AGachaManager::SelectItem(int32 Index)
 	if (!CurrentRollResult.IsValidIndex(Index) || !CurrentRollResult[Index]) return;
 	if (!IsValid(CurrentSlot)) return;
 
+	// 합성 카드는 설치 전에 재료를 확인한다. 재료가 없으면 설치하지 않고 카드를 무효화한다.
+	const TSubclassOf<AActor> SelectedClass = CurrentRollResult[Index];
+	AEpicTowerManager* EpicManager = nullptr;
+	ASynergyManager* SynergyManager = nullptr;
+	TArray<ABaseTower*> FusionMaterials;
+	const bool bIsFusion = PendingFusionTowers.Contains(SelectedClass);
+	if (bIsFusion)
+	{
+		EpicManager = Cast<AEpicTowerManager>(
+			UGameplayStatics::GetActorOfClass(GetWorld(), AEpicTowerManager::StaticClass()));
+		SynergyManager = Cast<ASynergyManager>(
+			UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));
+		const bool bHasMaterials = EpicManager && SynergyManager &&
+			EpicManager->FindFusionMaterials(SelectedClass, SynergyManager->FieldTowers, FusionMaterials);
+		if (!bHasMaterials)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Fusion card %s cancelled: materials are no longer on the field."), *SelectedClass->GetName());
+			if (EpicManager) EpicManager->CancelPendingFusion(SelectedClass, this);
+			else PendingFusionTowers.Remove(SelectedClass);
+			Roll();
+			return;
+		}
+	}
+
 	const FVector CurrentSlotLocation = CurrentSlot->GetActorLocation();
 	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
 		CurrentRollResult[Index], CurrentSlotLocation, FRotator::ZeroRotator);
@@ -265,20 +289,10 @@ void AGachaManager::SelectItem(int32 Index)
 		UniquePool.Remove(CurrentRollResult[Index]);
 		EpicPool.Remove(CurrentRollResult[Index]);
 
-		if (PendingFusionTowers.Contains(CurrentRollResult[Index]))
+		// 설치 전에 찾아 둔 재료만 소비한다(새로 설치한 에픽 타워가 재료로 잡히지 않음).
+		if (bIsFusion && EpicManager)
 		{
-			AEpicTowerManager* EpicManager = Cast<AEpicTowerManager>(
-				UGameplayStatics::GetActorOfClass(GetWorld(), AEpicTowerManager::StaticClass()));
-			ASynergyManager* SynergyManager = Cast<ASynergyManager>(
-				UGameplayStatics::GetActorOfClass(GetWorld(), ASynergyManager::StaticClass()));
-			if (EpicManager)
-			{
-				EpicManager->FuseEpicTower(
-					CurrentRollResult[Index],
-					SynergyManager ? SynergyManager->FieldTowers : TArray<ABaseTower*>(),
-					this,
-					SynergyManager);
-			}
+			EpicManager->ConsumeFusionMaterials(SelectedClass, FusionMaterials, this, SynergyManager);
 		}
 	}
 	else
