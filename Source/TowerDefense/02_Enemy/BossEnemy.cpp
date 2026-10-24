@@ -61,6 +61,18 @@ void ABossEnemy::BeginPlay()
 		}
 	}
 
+	// HP바를 WBP 기본값이 아닌 실제 체력 비율로 시작.
+	if (BossHPBarWidget)
+	{
+		const UEnemyStatComponent* BossStat = GetComponentByClass<UEnemyStatComponent>();
+		const float MaxHP = BossStat ? BossStat->GetStat(UStatComponent::GetTag("Stat.MaxHP")) : 0.f;
+		const float HP = BossStat ? BossStat->GetStat(UStatComponent::GetTag("Stat.HP")) : 0.f;
+		const float HPPercent = FMath::IsFinite(MaxHP) && MaxHP > KINDA_SMALL_NUMBER
+			? FMath::Clamp(HP / MaxHP * 100.f, 0.f, 100.f)
+			: 100.f;
+		BossHPBarWidget->UpdateHPBar(HPPercent);
+	}
+
 	UEnemyStatComponent* EnemyStatComp = GetComponentByClass<UEnemyStatComponent>();
 	if (EnemyStatComp)
 	{
@@ -83,11 +95,12 @@ void ABossEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 	const float HP = BossStat->GetStat(UStatComponent::GetTag("Stat.HP"));
 	const float HPPercent = FMath::Clamp((HP / MaxHP) * 100.f, 0.f, 100.f);
 
+	// 한 번에 50% 초과 → 10% 이하로 떨어져도 3페이즈까지 순서대로 진입.
 	if (HPPercent <= 50.f && BossAbilityComponent->CurrentPhase == 1)
 	{
 		BossAbilityComponent->OnPhaseChanged(2);
 	}
-	else if (HPPercent <= 10.f && BossAbilityComponent->CurrentPhase == 2)
+	if (HPPercent <= 10.f && BossAbilityComponent->CurrentPhase == 2)
 	{
 		BossAbilityComponent->OnPhaseChanged(3);
 	}
@@ -104,4 +117,15 @@ void ABossEnemy::OnBossDeath()
 	{
 		BossHPBarWidget->RemoveFromParent();
 	}
+}
+
+void ABossEnemy::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 사망 외의 경로(레벨 전환, 외부 Destroy 등)로 사라져도 HP바가 화면에 남지 않도록 정리.
+	if (IsValid(BossHPBarWidget))
+	{
+		BossHPBarWidget->RemoveFromParent();
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
