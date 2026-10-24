@@ -150,8 +150,9 @@ void UTowerStatComponent::LevelUp()
 	NewTowerStat->TowerRowName = TowerRowName;
 	NewTowerStat->CurrentLevel = CurrentLevel + 1;
 	NewTowerStat->InitFromDataTable();
-	NewTowerStat->ActiveBuffs = ActiveBuffs;
-	NewTowerStat->RecalculateStats();
+	// 이전 타워의 ActiveBuffs는 복사하지 않는다. 다른 타워의 Active 버프가 복사되면
+	// 버프를 준 쪽의 PreviousTargets에 새 타워가 없어 지속시간이 끝나도 지워지지 않는다.
+	// 시너지는 아래 UnregisterTower(OldTower)에서 다시 계산되고, Passive 버프는 다음 주기에 다시 적용된다.
 
 	NewTower->OwnerSlot = OldOwnerSlot;
 	OldOwnerSlot->InstalledTower = NewTower;
