@@ -1,5 +1,8 @@
 ﻿
 #include "CameraManager.h"
+#include "GridTile.h"
+#include "GameFramework/PlayerStart.h"
+#include "Kismet/GameplayStatics.h"
 
 
 ACameraManager::ACameraManager()
@@ -38,6 +41,24 @@ ACameraManager::ACameraManager()
 void ACameraManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+    // Frame the placement area when the level has no authored player start.
+    if (!UGameplayStatics::GetActorOfClass(this, APlayerStart::StaticClass()))
+    {
+        TArray<AActor*> Tiles;
+        UGameplayStatics::GetAllActorsOfClass(this, AGridTile::StaticClass(), Tiles);
+        FBox Bounds(ForceInit);
+        for (AActor* Tile : Tiles) Bounds += Tile->GetActorLocation();
+        if (Bounds.IsValid)
+        {
+            SetActorLocation(Bounds.GetCenter());
+            const FVector Extent = Bounds.GetExtent();
+            TargetArmLength = FMath::Max(Extent.X, Extent.Y) * 2.4f;
+            MaxZoom = FMath::Max(MaxZoom, TargetArmLength * 1.4f);
+            SpringArm->TargetArmLength = TargetArmLength;
+            SpringArm->SetRelativeRotation(FRotator(-55.f, -90.f, 0.f));
+        }
+    }
 
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC)
@@ -92,7 +113,12 @@ void ACameraManager::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+            if (CameraIMC) Subsystem->AddMappingContext(CameraIMC, 0);
+    }
+    UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (EIC)
 	{
 		EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACameraManager::Move);
