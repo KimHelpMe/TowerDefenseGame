@@ -82,9 +82,6 @@ DerivedDataCache/*
 *.tmp
 *.bak
 
-# Public source-only repository: Content mixes project assets with third-party packs.
-# Keep the complete Content directory in the local project backup.
-/Content/
 
 # Local source art retained with the complete project, not included in this public copy.
 /daoguang.png
