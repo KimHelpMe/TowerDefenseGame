@@ -65,6 +65,12 @@ public:
 	UPROPERTY(EditAnywhere)
 	float MoveSpeed;
 
+	UPROPERTY(EditAnywhere, Category="Camera|Input", meta=(ClampMin="0.0"))
+	float MouseRotationSpeed;
+
+	UPROPERTY(VisibleAnywhere, Category="Camera|Input")
+	float MousePitchOffset;
+
 	UPROPERTY(EditAnywhere)
 	float EdgeScrollThreshold;
 
