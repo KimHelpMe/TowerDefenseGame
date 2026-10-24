@@ -27,7 +27,7 @@ void USplitAbilityComponent::OnEnemyDeathAbility()
 		// Owner 위치에 스폰
 		AEnemy* SpawnedEnemy = GetWorld()->SpawnActor<AEnemy>(
 			SplitEnemyClass,
-			OwnerEnemy->GetActorLocation(),
+			SpawnLocation,
 			FRotator::ZeroRotator
 		);
 
@@ -35,7 +35,8 @@ void USplitAbilityComponent::OnEnemyDeathAbility()
 		if (SpawnedEnemy)
 		{
 			SpawnedEnemy->splinePath = OwnerEnemy->splinePath;
-			SpawnedEnemy->CurrentSplinePoint = OwnerEnemy->CurrentSplinePoint;
+			// Stagger children along the spline so they do not move as one stacked unit.
+			SpawnedEnemy->CurrentSplinePoint = FMath::Max(0.f, OwnerEnemy->CurrentSplinePoint - i * SplitSpacing);
 			UE_LOG(LogTemp, Warning, TEXT("Split! Spawned Enemy %d"), i);
 		}
 	}
