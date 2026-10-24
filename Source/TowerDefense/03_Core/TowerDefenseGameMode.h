@@ -16,6 +16,8 @@ class ARoundManager;
 class AGridManager;
 class ACommandManager;
 class UStatComponent;
+class UMainMenuWidget;
+class UBattleResultWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTokenChanged, float, NewToken);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGoldChanged, float, NewGold);
@@ -134,6 +136,16 @@ protected:
 
 	// 게임 종료(승리/패배) 결과 위젯 표시.
 	void ShowBattleResult();
+
+public:
+
+	// 시작 시 표시할 메인 메뉴 위젯(기본값: /Game/03_UI/WBP_MainMenu). GameMode BP에서 바꿀 수 있다.
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSoftClassPtr<UMainMenuWidget> MainMenuWidgetClass;
+
+	// 승리/패배 시 표시할 결과 위젯(기본값: /Game/03_UI/WBP_BattleResult).
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSoftClassPtr<UBattleResultWidget> BattleResultWidgetClass;
 
 public:
 
