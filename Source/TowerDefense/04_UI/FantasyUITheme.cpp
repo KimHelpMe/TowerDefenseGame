@@ -1,4 +1,4 @@
-﻿#include "FantasyUITheme.h"
+#include "FantasyUITheme.h"
 #include "UIEffectFormatting.h"
 #include "SynergyManager.h"
 #include "GachaManager.h"
@@ -166,6 +166,47 @@ namespace
                             Threshold->SetText(FText::FromString(FString::Printf(TEXT(" %d "), Step.RequireCount)));
                             FSlateFontInfo Font = Threshold->GetFont(); Font.Size=12; Threshold->SetFont(Font); Segments->AddChild(Threshold);
                         }
+                }
+
+                // Keep ties in data-table order, independent of Blueprint rebuild order.
+                TMap<FString, int32> CountsByName;
+                TMap<FString, int32> OrderByName;
+                for (int32 Index = 0; Index < Rows.Num(); ++Index)
+                {
+                    CountsByName.Add(Rows[Index]->SynergyDisplayName, Manager->SynergyCountMap.FindRef(Rows[Index]->SynergyTag));
+                    OrderByName.Add(Rows[Index]->SynergyDisplayName, Index);
+                }
+                struct FSortedSynergyRow
+                {
+                    UWidget* Child;
+                    UPanelSlot* SlotTemplate;
+                    int32 Count;
+                    int32 TableOrder;
+                };
+                TArray<FSortedSynergyRow> SortedRows;
+                for (int32 Index = 0; Index < List->GetChildrenCount(); ++Index)
+                {
+                    UWidget* Child = List->GetChildAt(Index);
+                    UUserWidget* RowWidget = Cast<UUserWidget>(Child);
+                    UTextBlock* Label = RowWidget ? Cast<UTextBlock>(RowWidget->GetWidgetFromName(TEXT("SynergyName"))) : nullptr;
+                    const FString DisplayName = Label ? Label->GetText().ToString() : FString();
+                    const int32* TableOrder = OrderByName.Find(DisplayName);
+                    SortedRows.Add({Child, Child->Slot, CountsByName.FindRef(DisplayName), TableOrder ? *TableOrder : MAX_int32});
+                }
+                SortedRows.StableSort([](const FSortedSynergyRow& A, const FSortedSynergyRow& B)
+                {
+                    return A.Count != B.Count ? A.Count > B.Count : A.TableOrder < B.TableOrder;
+                });
+                bool bOrderChanged = false;
+                for (int32 Index = 0; Index < SortedRows.Num(); ++Index)
+                    bOrderChanged |= List->GetChildAt(Index) != SortedRows[Index].Child;
+                if (bOrderChanged)
+                {
+                    const float ScrollOffset = List->GetScrollOffset();
+                    // InsertChildAt/ShiftChild do not update live Slate order; reattach only when needed.
+                    List->ClearChildren();
+                    for (const FSortedSynergyRow& Row : SortedRows) List->AddChild(Row.Child, Row.SlotTemplate);
+                    List->SetScrollOffset(ScrollOffset);
                 }
             }
         }
