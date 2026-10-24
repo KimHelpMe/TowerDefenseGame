@@ -31,15 +31,7 @@ void UTowerStatComponent::RecalculateStats()
 	ABaseTower* Tower = Cast<ABaseTower>(GetOwner());
 	if (!IsValid(Tower) || !IsValid(Tower->TowerAttackRangeComponent)) return;
 
-	const float BaseRange = GetStat(TDTags::Stat_AttackRange);
-	ATowerDefenseGameMode* GameMode = GetWorld()
-		? Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()))
-		: nullptr;
-	const float AttackRangeBonus = GameMode
-		? GameMode->GetUpgradeBonus(TDTags::Upgrade_AttackRange)
-		: 0.f;
-	const float FinalAttackRange = FMath::Max(0.f, BaseRange * (1.f + AttackRangeBonus));
-	Tower->TowerAttackRangeComponent->SetSphereRadius(FinalAttackRange);
+	Tower->TowerAttackRangeComponent->SetSphereRadius(GetFinalAttackRange());
 
 	// 버프·시너지로 바뀐 공격속도를 공격 타이머에 반영한다.
 	// 버프는 제거 후 재적용되므로 같은 프레임의 변경을 모아 다음 틱에 한 번 확인한다.
@@ -48,6 +40,18 @@ void UTowerStatComponent::RecalculateStats()
 	{
 		GetWorld()->GetTimerManager().SetTimerForNextTick(AttackTower, &AAttackTower::RefreshAttackTimer);
 	}
+}
+
+
+float UTowerStatComponent::GetFinalAttackRange() const
+{
+	const float BaseRange = GetStat(TDTags::Stat_AttackRange);
+	ATowerDefenseGameMode* GameMode = GetWorld()
+		? Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()))
+		: nullptr;
+	const float RangeBonus = GameMode ? GameMode->GetUpgradeBonus(TDTags::Upgrade_AttackRange) : 0.f;
+	const float SafeRangeBonus = FMath::IsFinite(RangeBonus) ? RangeBonus : 0.f;
+	return FMath::IsFinite(BaseRange) ? FMath::Max(0.f, BaseRange * (1.f + SafeRangeBonus)) : 0.f;
 }
 
 

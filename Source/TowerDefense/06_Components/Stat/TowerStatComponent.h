@@ -62,6 +62,10 @@ public:
 
 	virtual void RecalculateStats() override;
 
+	// 기본 사거리에 인게임 사거리 업그레이드를 적용한 최종 공격 사거리.
+	UFUNCTION(BlueprintCallable)
+	float GetFinalAttackRange() const;
+
 	UFUNCTION()
 	void InitFromDataTable();
 

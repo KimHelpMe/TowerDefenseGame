@@ -63,30 +63,12 @@ void AProjectile::OnHit(UPrimitiveComponent* OverlappedComp,
 
 	ATowerDefenseGameMode* GameMode = Cast<ATowerDefenseGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 
-	float DamageBonus = 0.f;
-
-	
-	if (GameMode && TowerStatComponent)
-	{
-		// 물리/마법 공격 타입에 따라 보너스 적용
-		if (TowerStatComponent->AttackTypes.HasTag(
-			TDTags::AttackTypes_Physical))
-		{
-			DamageBonus = GameMode->GetUpgradeBonus(
-				TDTags::Upgrade_AttackDamage_Physical);
-		}
-		else if (TowerStatComponent->AttackTypes.HasTag(
-			TDTags::AttackTypes_Magic))
-		{
-			DamageBonus = GameMode->GetUpgradeBonus(
-				TDTags::Upgrade_AttackDamage_Magic);
-		}
-	}
-
 	// TowerStatComponent는 UPROPERTY라 GC 후 null이 되므로 null 체크로 충분함.
 	// 발사한 타워가 레벨업/합성으로 교체되어도 날아가던 탄의 피해는 유지하기 위해 IsValid는 쓰지 않음.
 	if (IsValid(enemy) && TowerStatComponent)
 	{
+		// 물리/마법 공격 타입에 따른 업그레이드 보너스 적용.
+		const float DamageBonus = GameMode ? GameMode->GetAttackDamageBonus(TowerStatComponent) : 0.f;
 		float FinalDamage = TowerStatComponent->GetStat(TDTags::Stat_AttackDamage) * (1.f + DamageBonus);
 		enemy->ReceiveDamage(FinalDamage, TowerStatComponent);
 	}
