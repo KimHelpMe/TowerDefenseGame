@@ -208,7 +208,7 @@ namespace
                         UTextBlock* Label = Child ? Cast<UTextBlock>(Child->GetWidgetFromName(TEXT("SynergyName"))) : nullptr;
                         if (Label && Label->GetText().ToString() == Row->SynergyDisplayName) { bFound = true; break; }
                     }
-                    if (bFound || !RowClass) continue;
+                    if (bFound || !RowClass || Manager->SynergyCountMap.FindRef(Row->SynergyTag) <= 0) continue;
                     UUserWidget* Child = CreateWidget<UUserWidget>(Widget->GetWorld(), RowClass);
                     if (!Child) continue;
                     List->AddChild(Child);
@@ -277,7 +277,8 @@ namespace
                 {
                     if (Row->SynergyDisplayName != NameText->GetText().ToString()) continue;
                     const int32 Count = Manager->SynergyCountMap.FindRef(Row->SynergyTag);
-                    Widget->SetVisibility(ESlateVisibility::Visible);
+                    Widget->SetVisibility(Count > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+                    if (Count <= 0) break;
                     if (UTextBlock* CountText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("CountText")))) CountText->SetText(FText::AsNumber(Count));
                     FString Detail = FString::Printf(TEXT("%s · 현재 %d스택\n\n단계별 효과\n"), *Row->SynergyDisplayName, Count);
                     FString ActiveEffect;
