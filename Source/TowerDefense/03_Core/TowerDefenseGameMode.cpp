@@ -181,6 +181,13 @@ void ATowerDefenseGameMode::SkipRound()
 }
 
 
+void ATowerDefenseGameMode::AddGold(float Amount)
+{
+	if (!FMath::IsFinite(Amount) || Amount == 0.f) return;
+	Gold += Amount;
+	OnGoldChanged.Broadcast(Gold);
+}
+
 void ATowerDefenseGameMode::AddTowerToken(float Amount)
 {
 	TowerToken += Amount;

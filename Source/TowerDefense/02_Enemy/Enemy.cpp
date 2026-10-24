@@ -220,7 +220,7 @@ void AEnemy::OnEnemyDeath()
 	}
 	if (GameMode)
 	{
-		GameMode->Gold += GoldReward;
+		GameMode->AddGold(GoldReward);
 		GameMode->AddExp(ExpReward);
 	}
 
