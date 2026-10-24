@@ -214,13 +214,7 @@ namespace
                     List->AddChild(Child);
                     if (UTextBlock* Label = Cast<UTextBlock>(Child->GetWidgetFromName(TEXT("SynergyName")))) Label->SetText(FText::FromString(Row->SynergyDisplayName));
                     if (UImage* Icon = Cast<UImage>(Child->GetWidgetFromName(TEXT("SynergyIcon")))) Icon->SetBrushFromTexture(Row->SynergyIcon);
-                    if (UHorizontalBox* Segments = Cast<UHorizontalBox>(Child->GetWidgetFromName(TEXT("SegmentBox"))))
-                        for (const FSynergyStep& Step : Row->Steps)
-                        {
-                            UTextBlock* Threshold = Child->WidgetTree->ConstructWidget<UTextBlock>();
-                            Threshold->SetText(FText::FromString(FString::Printf(TEXT(" %d "), Step.RequireCount)));
-                            FSlateFontInfo Font = Threshold->GetFont(); Font.Size=12; Threshold->SetFont(Font); Segments->AddChild(Threshold);
-                        }
+
                 }
 
                 // Keep ties in data-table order, independent of Blueprint rebuild order.
@@ -279,16 +273,89 @@ namespace
                     const int32 Count = Manager->SynergyCountMap.FindRef(Row->SynergyTag);
                     Widget->SetVisibility(Count > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
                     if (Count <= 0) break;
-                    if (UTextBlock* CountText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("CountText")))) CountText->SetText(FText::AsNumber(Count));
-                    FString Detail = FString::Printf(TEXT("%s · 현재 %d스택\n\n단계별 효과\n"), *Row->SynergyDisplayName, Count);
+                    int32 MaxStack = 0;
+                    for (const FSynergyStep& Step : Row->Steps) MaxStack = FMath::Max(MaxStack, Step.RequireCount);
+                    const int32 DisplayStack = MaxStack > 0 ? FMath::Clamp(Count, 0, MaxStack) : Count;
+                    if (UTextBlock* CountText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("CountText"))))
+                    {
+                        CountText->SetText(MaxStack > 0
+                            ? FText::FromString(FString::Printf(TEXT("%d/%d"), DisplayStack, MaxStack))
+                            : FText::AsNumber(Count));
+                    }
+
+                    if (UHorizontalBox* SegmentBox = Cast<UHorizontalBox>(Widget->GetWidgetFromName(TEXT("SegmentBox"))))
+                    {
+                        bool bRebuildSegments = SegmentBox->GetChildrenCount() != Row->Steps.Num();
+                        for (int32 Index = 0; !bRebuildSegments && Index < SegmentBox->GetChildrenCount(); ++Index)
+                        {
+                            USizeBox* Cell = Cast<USizeBox>(SegmentBox->GetChildAt(Index));
+                            UBorder* Frame = Cell ? Cast<UBorder>(Cell->GetContent()) : nullptr;
+                            UBorder* Fill = Frame ? Cast<UBorder>(Frame->GetContent()) : nullptr;
+                            bRebuildSegments = Fill == nullptr;
+                        }
+
+                        if (bRebuildSegments)
+                        {
+                            SegmentBox->ClearChildren();
+                            for (int32 Index = 0; Index < Row->Steps.Num(); ++Index)
+                            {
+                                USizeBox* Cell = Widget->WidgetTree->ConstructWidget<USizeBox>(
+                                    USizeBox::StaticClass(),
+                                    MakeUniqueObjectName(Widget->WidgetTree, USizeBox::StaticClass(), *FString::Printf(TEXT("SynergySegment_%d"), Index)));
+                                Cell->SetWidthOverride(22.f);
+                                Cell->SetHeightOverride(12.f);
+
+                                UBorder* Frame = Widget->WidgetTree->ConstructWidget<UBorder>(
+                                    UBorder::StaticClass(),
+                                    MakeUniqueObjectName(Widget->WidgetTree, UBorder::StaticClass(), *FString::Printf(TEXT("SynergySegmentFrame_%d"), Index)));
+                                Frame->SetBrushColor(FLinearColor(0.24f, 0.29f, 0.36f, 1.f));
+                                Frame->SetPadding(FMargin(1.f));
+
+                                UBorder* Fill = Widget->WidgetTree->ConstructWidget<UBorder>(
+                                    UBorder::StaticClass(),
+                                    MakeUniqueObjectName(Widget->WidgetTree, UBorder::StaticClass(), *FString::Printf(TEXT("SynergySegmentFill_%d"), Index)));
+                                Fill->SetBrushColor(FLinearColor(0.09f, 0.13f, 0.19f, 1.f));
+                                Frame->SetContent(Fill);
+                                Cell->SetContent(Frame);
+                                SegmentBox->AddChildToHorizontalBox(Cell)->SetPadding(FMargin(2.f, 0.f));
+                            }
+                        }
+
+                        const FLinearColor AccentColor = Row->BadgeColor.A > 0.f ? Row->BadgeColor : GoldColor;
+                        for (int32 Index = 0; Index < Row->Steps.Num(); ++Index)
+                        {
+                            USizeBox* Cell = Cast<USizeBox>(SegmentBox->GetChildAt(Index));
+                            UBorder* Frame = Cell ? Cast<UBorder>(Cell->GetContent()) : nullptr;
+                            UBorder* Fill = Frame ? Cast<UBorder>(Frame->GetContent()) : nullptr;
+                            if (!Fill) continue;
+
+                            const FSynergyStep& Step = Row->Steps[Index];
+                            Fill->SetBrushColor(Count >= Step.RequireCount
+                                ? AccentColor
+                                : FLinearColor(0.09f, 0.13f, 0.19f, 1.f));
+                            Cell->SetToolTipText(FText::FromString(FString::Printf(TEXT("효과 단계 · %d스택"), Step.RequireCount)));
+                        }
+                    }
+
+                    FString Detail = FString::Printf(TEXT("%s · 현재 %d/%d스택\n\n단계별 효과\n"), *Row->SynergyDisplayName, DisplayStack, MaxStack);
                     FString ActiveEffect;
+                    bool bHasActiveStep = false;
+                    int32 NextStepCount = INDEX_NONE;
                     for (const FSynergyStep& Step : Row->Steps)
                     {
                         FString Effects = Step.EffectDesc;
                         for (const FBuffEffect& Effect : Step.Effects)
                             Effects += FString::Printf(TEXT("\n%s %+.2f%s"), *TowerUI::TagName(Effect.StatTag), Effect.ValueType == EBuffValueType::Percent ? Effect.Value*100.f : Effect.Value, Effect.ValueType == EBuffValueType::Percent ? TEXT("%") : TEXT(""));
                         Detail += FString::Printf(TEXT("%s %d스택: %s\n"), Count >= Step.RequireCount ? TEXT("[활성]") : TEXT("[미달]"), Step.RequireCount, *Effects);
-                        if (Count >= Step.RequireCount) ActiveEffect = Effects.TrimStartAndEnd();
+                        if (Count >= Step.RequireCount)
+                        {
+                            bHasActiveStep = true;
+                            ActiveEffect = Effects.TrimStartAndEnd();
+                        }
+                        else if (NextStepCount == INDEX_NONE)
+                        {
+                            NextStepCount = Step.RequireCount;
+                        }
                     }
                     Detail += TEXT("\n스택에 기여한 타워\n");
                     for (ABaseTower* Tower : Manager->FieldTowers)
@@ -304,7 +371,14 @@ namespace
                         if (TipClass) { Tip = CreateWidget<UUserWidget>(Widget->GetWorld(), TipClass); Widget->SetToolTip(Tip); }
                     }
                     if (Tip) if (UTextBlock* Text = Cast<UTextBlock>(Tip->GetWidgetFromName(TEXT("TooltipBody")))) Text->SetText(FText::FromString(Detail));
-                    if (UTextBlock* EffectText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("EffectText")))) EffectText->SetText(FText::FromString(ActiveEffect.IsEmpty() ? FString::Printf(TEXT("미활성 · %d기 필요"), Row->Steps.IsEmpty() ? 0 : FMath::Max(0, Row->Steps[0].RequireCount-Count)) : ActiveEffect));
+                    FString EffectSummary = ActiveEffect;
+                    if (EffectSummary.IsEmpty())
+                    {
+                        if (bHasActiveStep) EffectSummary = TEXT("효과 단계 활성");
+                        else if (NextStepCount != INDEX_NONE) EffectSummary = FString::Printf(TEXT("다음 단계 · %d스택"), NextStepCount);
+                        else EffectSummary = TEXT("단계별 효과 없음");
+                    }
+                    if (UTextBlock* EffectText = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("EffectText")))) EffectText->SetText(FText::FromString(EffectSummary));
                     break;
                 }
             }
