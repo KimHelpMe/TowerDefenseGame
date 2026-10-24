@@ -1,5 +1,6 @@
 ﻿
 #include "BossAbilityComponent.h"
+#include "TowerDefenseTags.h"
 #include "TowerDefenseLog.h"
 #include "Enemy.h"
 #include "EnemySplinePath.h"
@@ -51,14 +52,14 @@ void UBossAbilityComponent::ApplyPhaseBuffs(int32 Phase)
 	if (Phase == 2)
 	{
 		FBuffEffect SpeedEffect;
-		SpeedEffect.StatTag = UStatComponent::GetTag("Stat.MoveSpeed");
+		SpeedEffect.StatTag = TDTags::Stat_MoveSpeed;
 		SpeedEffect.Value = 0.3f;
 		SpeedEffect.ValueType = EBuffValueType::Percent;
 		SpeedEffect.Source = GetOwner();
 		BossStat->ModifyStat(SpeedEffect);
 
 		FBuffEffect DefenseEffect;
-		DefenseEffect.StatTag = UStatComponent::GetTag("Stat.Defense");
+		DefenseEffect.StatTag = TDTags::Stat_Defense;
 		DefenseEffect.Value = 0.3f;
 		DefenseEffect.ValueType = EBuffValueType::Percent;
 		DefenseEffect.Source = GetOwner();
@@ -67,14 +68,14 @@ void UBossAbilityComponent::ApplyPhaseBuffs(int32 Phase)
 	if (Phase == 3)
 	{
 		FBuffEffect SpeedEffect;
-		SpeedEffect.StatTag = UStatComponent::GetTag("Stat.MoveSpeed");
+		SpeedEffect.StatTag = TDTags::Stat_MoveSpeed;
 		SpeedEffect.Value = 0.5f;
 		SpeedEffect.ValueType = EBuffValueType::Percent;
 		SpeedEffect.Source = GetOwner();
 		BossStat->ModifyStat(SpeedEffect);
 
 		FBuffEffect DefenseEffect;
-		DefenseEffect.StatTag = UStatComponent::GetTag("Stat.Defense");
+		DefenseEffect.StatTag = TDTags::Stat_Defense;
 		DefenseEffect.Value = 0.5f;
 		DefenseEffect.ValueType = EBuffValueType::Percent;
 		DefenseEffect.Source = GetOwner();

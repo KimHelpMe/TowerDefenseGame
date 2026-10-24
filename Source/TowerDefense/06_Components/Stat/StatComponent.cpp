@@ -1,4 +1,5 @@
 ﻿#include "StatComponent.h"
+#include "TowerDefenseTags.h"
 #include "TowerDefenseLog.h"
 #include "FBuffEffect.h"
 
@@ -138,9 +139,9 @@ void UStatComponent::RecalculateStats()
 	}
 
 
-	const FGameplayTag HPTag = GetTag("Stat.HP");
+	const FGameplayTag HPTag = TDTags::Stat_HP;
 	const float CurrentHP = GetStat(HPTag);
-	const float MaxHP = GetStat(GetTag("Stat.MaxHP"));
+	const float MaxHP = GetStat(TDTags::Stat_MaxHP);
 
 	if (FMath::IsFinite(MaxHP) && MaxHP > 0.f && CurrentHP > MaxHP)
 	{
@@ -155,7 +156,7 @@ void UStatComponent::ApplyDamage(float Amount)
 {
 	if (!FMath::IsFinite(Amount) || Amount <= 0.f) return;
 
-	const FGameplayTag HPTag = GetTag("Stat.HP");
+	const FGameplayTag HPTag = TDTags::Stat_HP;
 	const float CurrentHP = GetStat(HPTag);
 	if (!FMath::IsFinite(CurrentHP) || CurrentHP <= 0.f) return;
 

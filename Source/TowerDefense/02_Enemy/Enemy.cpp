@@ -1,4 +1,5 @@
 ﻿#include "Enemy.h"
+#include "TowerDefenseTags.h"
 #include "TowerDefenseLog.h"
 #include "Base.h"
 #include "TowerDefenseGameMode.h"
@@ -62,7 +63,7 @@ void AEnemy::Tick(float DeltaTime)
 
 	// 현재 이동한 적의 거리, 매 프레임 마다 Speed 만큼 증가.
 	// DeltaTime 은 프레임 마다 시간이 다르기 때문에 일정 속도를 유지하기 위함.
-	CurrentSplinePoint += EnemyStatComponent->GetStat(UStatComponent::GetTag("Stat.MoveSpeed")) * DeltaTime;
+	CurrentSplinePoint += EnemyStatComponent->GetStat(TDTags::Stat_MoveSpeed) * DeltaTime;
 
 	// spline 위의 해당 거리 좌표를 가지고 옴.
 	FVector targetLocation = splinePath->splineComponent->
@@ -86,7 +87,7 @@ void AEnemy::Tick(float DeltaTime)
 			EnemyAttackHandle,
 			this,
 			&AEnemy::AttackBase,
-			EnemyStatComponent->GetStat(UStatComponent::GetTag("Stat.AttackSpeed")),
+			EnemyStatComponent->GetStat(TDTags::Stat_AttackSpeed),
 			true);
 	}
 
@@ -146,11 +147,11 @@ void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 				if (!Row) continue;
 
 				// AttackerStat->AttackTypes 체크해서 배율 선택
-				if (AttackerStat->AttackTypes.HasTag(UStatComponent::GetTag("AttackTypes.Physical")))
+				if (AttackerStat->AttackTypes.HasTag(TDTags::AttackTypes_Physical))
 					DefenseMultiplier *= Row->PhysicalMultiplier;
-				else if (AttackerStat->AttackTypes.HasTag(UStatComponent::GetTag("AttackTypes.Magic")))
+				else if (AttackerStat->AttackTypes.HasTag(TDTags::AttackTypes_Magic))
 					DefenseMultiplier *= Row->MagicMultiplier;
-				else if (AttackerStat->AttackTypes.HasTag(UStatComponent::GetTag("AttackTypes.Chaos")))
+				else if (AttackerStat->AttackTypes.HasTag(TDTags::AttackTypes_Chaos))
 					DefenseMultiplier *= Row->ChaosMultiplier;
 			}
 		}
@@ -158,8 +159,8 @@ void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 
 		// 방어력 관통 적용
 		float DefPenetration = GameMode ? GameMode->GetUpgradeBonus(
-			UStatComponent::GetTag("Upgrade.DefensePenetration")) : 0.f;
-		float EffectiveDefense = FMath::Max(0.f, EnemyStatComponent->GetStat(UStatComponent::GetTag("Stat.Defense")) * (1.f - DefPenetration));
+			TDTags::Upgrade_DefensePenetration) : 0.f;
+		float EffectiveDefense = FMath::Max(0.f, EnemyStatComponent->GetStat(TDTags::Stat_Defense) * (1.f - DefPenetration));
 		FinalDamage = FinalDamage * (100.f / (100.f + EffectiveDefense));
 
 		// 속성 내성 관통 적용
@@ -199,7 +200,7 @@ void AEnemy::AttackBase()
 {
 	if (Base && IsValid(Base))
 	{
-		Base->ReceiveDamage(EnemyStatComponent->GetStat(UStatComponent::GetTag("Stat.AttackDamage")), EnemyStatComponent);
+		Base->ReceiveDamage(EnemyStatComponent->GetStat(TDTags::Stat_AttackDamage), EnemyStatComponent);
 	}
 }
 

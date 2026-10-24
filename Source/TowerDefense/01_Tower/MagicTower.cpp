@@ -1,4 +1,5 @@
 ﻿#include "MagicTower.h"
+#include "TowerDefenseTags.h"
 #include "Projectile.h"
 #include "Enemy.h"
 #include "ManaComponent.h"
@@ -30,8 +31,8 @@ void AMagicTower::BeginPlay()
 	if (TowerStat)
 	{
 		float AttackRangeBonus = GameMode ? GameMode->GetUpgradeBonus(
-			UStatComponent::GetTag("Upgrade.AttackRange")) : 0.f;
-		float FinalAttackRange = TowerStat->GetStat(UStatComponent::GetTag("Stat.AttackRange")) * (1.f + AttackRangeBonus);
+			TDTags::Upgrade_AttackRange) : 0.f;
+		float FinalAttackRange = TowerStat->GetStat(TDTags::Stat_AttackRange) * (1.f + AttackRangeBonus);
 		TowerAttackRangeComponent->SetSphereRadius(FinalAttackRange);
 	}
 
@@ -83,7 +84,7 @@ void AMagicTower::OnEnemyEnter(UPrimitiveComponent* OverlappedComp,
 	if (AirComp)
 	{
 		if (TowerStat && TowerStat->Abilities.HasTag(
-			UStatComponent::GetTag("Ability.AttackAir")))
+			TDTags::Ability_AttackAir))
 		{
 			CurrentTargets.Add(enemy);
 			SetTurretTarget(CurrentTargets[0]);
@@ -93,7 +94,7 @@ void AMagicTower::OnEnemyEnter(UPrimitiveComponent* OverlappedComp,
 	else
 	{
 		if (TowerStat && TowerStat->Abilities.HasTag(
-			UStatComponent::GetTag("Ability.AttackGround")))
+			TDTags::Ability_AttackGround))
 		{
 			CurrentTargets.Add(enemy);
 			SetTurretTarget(CurrentTargets[0]);
