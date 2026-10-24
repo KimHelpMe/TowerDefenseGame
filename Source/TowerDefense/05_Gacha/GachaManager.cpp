@@ -256,6 +256,8 @@ void AGachaManager::SelectItem(int32 Index)
 		Tower->OwnerSlot = CurrentSlot;
 		CurrentSlot->InstalledTower = Tower;
 		CurrentSlot->bIsOccupied = true;
+		// 슬롯이 나중에 비워져도 이미 사용한 뽑기 결과가 다시 나오지 않도록 초기화.
+		CurrentSlot->ResetGachaState();
 		if (CurrentSlot->TowerSlotMesh) CurrentSlot->TowerSlotMesh->SetVisibility(false);
 
 		CommonPool.Remove(CurrentRollResult[Index]);
