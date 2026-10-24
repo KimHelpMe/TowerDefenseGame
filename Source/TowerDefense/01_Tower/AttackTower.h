@@ -56,6 +56,11 @@ public:
 
 private:
 
+	// 공격 타이머 콜백. Attack()(BlueprintNativeEvent)을 통해 공격한다.
+	UFUNCTION()
+	void HandleAttackTimer();
+
+
 	//타이머 제어에 필요한 핸들, 타워도 일정 간격으로 발사해야함.
 	FTimerHandle AttackTimerHandle;
 
