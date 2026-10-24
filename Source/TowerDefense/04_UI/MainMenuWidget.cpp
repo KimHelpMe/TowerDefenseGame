@@ -216,8 +216,15 @@ void UMainMenuWidget::NativeTick(const FGeometry& Geometry, float DeltaTime)
     Super::NativeTick(Geometry, DeltaTime);
     float X = 0.f, Y = 0.f;
     if (!UWidgetLayoutLibrary::GetMousePositionScaledByDPI(GetMenuPlayerController(), X, Y)) return;
-    TArray<UUserWidget*> Widgets;
-    UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, UUserWidget::StaticClass(), true);
-    for (UUserWidget* Widget : Widgets)
-        if (Widget && Widget->GetClass()->GetName().Contains(TEXT("WBP_Cursor"))) Widget->SetPositionInViewport(FVector2D(X, Y), false);
+
+    // 커서 위젯은 한 번 찾아 캐시하고, 없을 때만 0.5초 간격으로 다시 찾는다(매 프레임 전체 위젯 검색 방지).
+    if (!CursorWidget.IsValid() && FPlatformTime::Seconds() >= NextCursorSearchTime)
+    {
+        NextCursorSearchTime = FPlatformTime::Seconds() + 0.5;
+        TArray<UUserWidget*> Widgets;
+        UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, UUserWidget::StaticClass(), true);
+        for (UUserWidget* Widget : Widgets)
+            if (Widget && Widget->GetClass()->GetName().Contains(TEXT("WBP_Cursor"))) { CursorWidget = Widget; break; }
+    }
+    if (UUserWidget* CursorUI = CursorWidget.Get()) CursorUI->SetPositionInViewport(FVector2D(X, Y), false);
 }
