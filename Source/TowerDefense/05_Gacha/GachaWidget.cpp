@@ -138,12 +138,13 @@ void UGachaWidget::PlayRarityReveal(const TArray<FGachaCardInfo>& CardInfos)
 		}
 		TArray<TWeakObjectPtr<UBorder>> Sparks;
 		Sparks.Reserve(SparkCount);
+		// 유니크는 보라 불티, 에픽은 금빛 불티 (FantasyUITheme 등급색과 같은 계열).
 		const FLinearColor Accent = bEpic
 			? FLinearColor(.98f, .67f, .18f, 1.f)
-			: FLinearColor(.96f, .20f, .30f, 1.f);
+			: FLinearColor(FColor(189, 116, 255));
 		const FLinearColor SparkAlt = bEpic
 			? FLinearColor(1.f, .93f, .60f, 1.f)
-			: FLinearColor(1.f, .65f, .76f, 1.f);
+			: FLinearColor(FColor(232, 205, 255));
 
 		for (int32 SparkIndex = 0; SparkIndex < SparkCount; ++SparkIndex)
 		{

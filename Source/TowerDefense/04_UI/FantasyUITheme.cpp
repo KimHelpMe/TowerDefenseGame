@@ -25,12 +25,17 @@
 
 namespace
 {
-	const FLinearColor PanelColor(0.025f, 0.038f, 0.072f, 0.94f);
-	const FLinearColor InsetColor(0.045f, 0.062f, 0.102f, 0.96f);
-	const FLinearColor GoldColor(0.86f, 0.70f, 0.40f, 1.f);
-	const FLinearColor CyanColor(0.36f, 0.78f, 0.86f, 1.f);
-	const FLinearColor PrimaryTextColor(0.84f, 0.88f, 0.95f, 1.f);
-	const FLinearColor MutedTextColor(0.56f, 0.64f, 0.75f, 1.f);
+	// "잿불과 금박" 팔레트: 픽셀 아이콘의 칠흑 배경·금박 트림·속성 발광색에서 가져왔다(sRGB 값으로 적고 선형으로 변환).
+	const FLinearColor PanelColor(FColor(23, 19, 32, 240));
+	const FLinearColor InsetColor(FColor(29, 24, 40, 245));
+	const FLinearColor GoldColor(FColor(217, 165, 74));
+	const FLinearColor GoldFrameColor(FColor(184, 138, 62));
+	const FLinearColor CyanColor(FColor(63, 162, 255));
+	const FLinearColor PrimaryTextColor(FColor(239, 225, 189));
+	const FLinearColor MutedTextColor(FColor(155, 143, 120));
+	const FLinearColor HealthColor(FColor(111, 220, 122));
+	const FLinearColor SegmentFrameColor(FColor(58, 48, 72));
+	const FLinearColor SegmentEmptyColor(FColor(42, 35, 56));
 
 	// 테마는 0.5초마다 다시 적용되므로, 값이 같을 때 Set을 호출하면 매번 Slate 무효화(재그리기)가 일어난다.
 	// 아래 함수들은 실제로 값이 바뀔 때만 위젯에 반영한다.
@@ -100,11 +105,15 @@ namespace
             if (Border->Background.GetResourceObject()) { SetBrushColorIfChanged(Border, FLinearColor::White); return; }
 			if (LowerName.Contains(TEXT("goldframe")) || LowerName.Contains(TEXT("divider")))
 			{
-				SetBrushColorIfChanged(Border, FLinearColor(0.48f, 0.36f, 0.19f, 0.9f));
+				// 안쪽 패널이 이미 픽셀 금박 테두리를 그리면 바깥 금테는 숨겨 이중 테두리를 막는다.
+				// 가챠 카드 금테는 등급색·등장 연출에 쓰이므로 그대로 둔다.
+				const UBorder* Inner = Cast<UBorder>(Border->GetContent());
+				const bool bInnerFramed = Inner && Inner->Background.GetResourceObject() && !LowerName.Contains(TEXT("card"));
+				SetBrushColorIfChanged(Border, bInnerFramed ? FLinearColor::Transparent : GoldFrameColor);
 			}
 			else if (LowerName.Contains(TEXT("badge")))
 			{
-				SetBrushColorIfChanged(Border, FLinearColor(0.36f, 0.25f, 0.09f, 0.98f));
+				SetBrushColorIfChanged(Border, FLinearColor(FColor(58, 40, 16, 250)));
 			}
 			else
 			{
@@ -113,15 +122,17 @@ namespace
 		}
 		else if (UButton* Button = Cast<UButton>(Widget))
 		{
+			// 픽셀 프레임 텍스처를 쓰는 버튼은 색을 곱하지 않고 텍스처 그대로 보여준다.
+			if (Button->GetStyle().Normal.GetResourceObject()) { SetButtonColorIfChanged(Button, FLinearColor::White); return; }
 			if (LowerName.Contains(TEXT("place")) || LowerName.Contains(TEXT("upgrade")) ||
 				LowerName.Contains(TEXT("reload")) || LowerName.Contains(TEXT("heal")))
 			{
-				SetButtonColorIfChanged(Button, FLinearColor(0.34f, 0.24f, 0.105f, 1.f));
+				SetButtonColorIfChanged(Button, FLinearColor(FColor(138, 100, 36)));
 			}
 			else if (LowerName.Contains(TEXT("purge")) || LowerName.Contains(TEXT("skill")) ||
 				LowerName.Contains(TEXT("autofire")))
 			{
-				SetButtonColorIfChanged(Button, FLinearColor(0.075f, 0.22f, 0.28f, 1.f));
+				SetButtonColorIfChanged(Button, FLinearColor(FColor(42, 35, 56)));
 			}
 			else
 			{
@@ -132,9 +143,9 @@ namespace
 		{
 			if (LowerName.Contains(TEXT("hp")))
 			{
-				SetFillColorIfChanged(ProgressBar, FLinearColor(0.27f, 0.72f, 0.46f, 1.f));
+				SetFillColorIfChanged(ProgressBar, HealthColor);
 			}
-			else if (LowerName.Contains(TEXT("mana")))
+			else if (LowerName.Contains(TEXT("mana")) || LowerName.Contains(TEXT("exp")))
 			{
 				SetFillColorIfChanged(ProgressBar, CyanColor);
 			}
@@ -146,7 +157,14 @@ namespace
 		else if (UTextBlock* Text = Cast<UTextBlock>(Widget))
 		{
 			FLinearColor TextColor = PrimaryTextColor;
-			if (LowerName.StartsWith(TEXT("lbl_")) || LowerName.Contains(TEXT("effect")) ||
+			const UButton* ParentButton = Cast<UButton>(Text->GetParent());
+			const UObject* ButtonTexture = ParentButton ? ParentButton->GetStyle().Normal.GetResourceObject() : nullptr;
+			if (ButtonTexture && ButtonTexture->GetName().Contains(TEXT("ButtonGold")))
+			{
+				// 금 버튼 위 글자는 밝은 양피지색이 묻히므로 짙은 먹색으로.
+				TextColor = FLinearColor(FColor(42, 26, 6));
+			}
+			else if (LowerName.StartsWith(TEXT("lbl_")) || LowerName.Contains(TEXT("effect")) ||
 				LowerName.Contains(TEXT("meta")) || LowerName.Contains(TEXT("cooldown")) ||
 				LowerName.Contains(TEXT("attacktype")) || LowerName.Contains(TEXT("info")))
 			{
@@ -162,7 +180,8 @@ namespace
 				LowerName.Contains(TEXT("hp")) || LowerName.Contains(TEXT("mana")) ||
 				LowerName.Contains(TEXT("exp")))
 			{
-				TextColor = CyanColor;
+				// 수치는 아이콘처럼 밝게: 본문보다 한 단계 밝은 양피지색.
+				TextColor = FLinearColor(FColor(255, 243, 214));
 			}
 			SetTextColorIfChanged(Text, TextColor);
 		}
@@ -222,12 +241,13 @@ namespace
         const int32 Index = IndexProperty->GetPropertyValue_InContainer(Widget);
         if (!Infos.IsValidIndex(Index)) return;
         const FGachaCardInfo& Info = Infos[Index];
-        // Preserve the original game's rarity palette after the general theme pass.
-        FLinearColor GradeColor(.6f,.6f,.6f,1.f);
-        if (Info.Grade == TEXT("Common")) GradeColor = FLinearColor(.1f,.7f,.2f,1.f);
-        else if (Info.Grade == TEXT("Rare")) GradeColor = FLinearColor(.1f,.4f,.9f,1.f);
-        else if (Info.Grade == TEXT("Unique")) GradeColor = FLinearColor(.8f,.1f,.1f,1.f);
-        else if (Info.Grade == TEXT("Epic")) GradeColor = FLinearColor(.9f,.7f,.1f,1.f);
+        // 등급색: 커먼 회철, 레어 청, 유니크 보라, 에픽 금. 일반 테마 패스 뒤에 카드 테두리·등급 글자에 덮어쓴다.
+        // 업그레이드 카드는 등급과 상관없이 바람색으로 타워 카드와 구분한다.
+        FLinearColor GradeColor(FColor(163, 171, 181));
+        if (Info.bIsUpgrade) GradeColor = FLinearColor(FColor(95, 230, 198));
+        else if (Info.Grade == TEXT("Rare")) GradeColor = FLinearColor(FColor(79, 176, 255));
+        else if (Info.Grade == TEXT("Unique")) GradeColor = FLinearColor(FColor(189, 116, 255));
+        else if (Info.Grade == TEXT("Epic")) GradeColor = FLinearColor(FColor(255, 188, 63));
         if (UTextBlock* Grade = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("TEXT_Grade"))))
         {
             SetTextIfChanged(Grade, Info.Grade);
@@ -405,13 +425,13 @@ namespace
                                 UBorder* Frame = Widget->WidgetTree->ConstructWidget<UBorder>(
                                     UBorder::StaticClass(),
                                     MakeUniqueObjectName(Widget->WidgetTree, UBorder::StaticClass(), *FString::Printf(TEXT("SynergySegmentFrame_%d"), Index)));
-                                Frame->SetBrushColor(FLinearColor(0.24f, 0.29f, 0.36f, 1.f));
+                                Frame->SetBrushColor(SegmentFrameColor);
                                 Frame->SetPadding(FMargin(1.f));
 
                                 UBorder* Fill = Widget->WidgetTree->ConstructWidget<UBorder>(
                                     UBorder::StaticClass(),
                                     MakeUniqueObjectName(Widget->WidgetTree, UBorder::StaticClass(), *FString::Printf(TEXT("SynergySegmentFill_%d"), Index)));
-                                Fill->SetBrushColor(FLinearColor(0.09f, 0.13f, 0.19f, 1.f));
+                                Fill->SetBrushColor(SegmentEmptyColor);
                                 Frame->SetContent(Fill);
                                 Cell->SetContent(Frame);
                                 SegmentBox->AddChildToHorizontalBox(Cell)->SetPadding(FMargin(2.f, 0.f));
@@ -429,7 +449,7 @@ namespace
                             const FSynergyStep& Step = Row->Steps[Index];
                             SetBrushColorIfChanged(Fill, Count >= Step.RequireCount
                                 ? AccentColor
-                                : FLinearColor(0.09f, 0.13f, 0.19f, 1.f));
+                                : SegmentEmptyColor);
                             SetToolTipTextIfChanged(Cell, FString::Printf(TEXT("효과 단계 · %d스택"), Step.RequireCount));
                         }
                     }
