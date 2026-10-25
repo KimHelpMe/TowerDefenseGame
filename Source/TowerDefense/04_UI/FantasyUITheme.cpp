@@ -286,16 +286,19 @@ namespace
                 FString Label,Value;
                 if (Lines[LineIndex].Split(TEXT(":"),&Label,&Value))
                 {
+                    // 값이 길어도 카드 폭 안에서 줄바꿈되도록 라벨·값에 비율 폭(55:45)을 준다.
                     UHorizontalBox* Row = Widget->WidgetTree->ConstructWidget<UHorizontalBox>();
                     Content->AddChildToVerticalBox(Row)->SetPadding(FMargin(0,3));
-                    auto* LabelSlot = Row->AddChildToHorizontalBox(Text(Label.TrimStartAndEnd(),14,MutedTextColor,TEXT("LBL_Detail")));
-                    LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-                    UTextBlock* Number = Text(Value.TrimStartAndEnd(),14,PrimaryTextColor,TEXT("DetailValue"));
+                    FSlateChildSize LabelSize(ESlateSizeRule::Fill); LabelSize.Value = 0.55f;
+                    Row->AddChildToHorizontalBox(Text(Label.TrimStartAndEnd(),13,MutedTextColor,TEXT("LBL_Detail")))->SetSize(LabelSize);
+                    UTextBlock* Number = Text(Value.TrimStartAndEnd(),13,PrimaryTextColor,TEXT("DetailValue"));
                     Number->SetJustification(ETextJustify::Right);
-                    Number->SetAutoWrapText(false);
-                    Row->AddChildToHorizontalBox(Number)->SetPadding(FMargin(12,0,0,0));
+                    auto* ValueSlot = Row->AddChildToHorizontalBox(Number);
+                    FSlateChildSize ValueSize(ESlateSizeRule::Fill); ValueSize.Value = 0.45f;
+                    ValueSlot->SetSize(ValueSize);
+                    ValueSlot->SetPadding(FMargin(10,0,0,0));
                 }
-                else Content->AddChildToVerticalBox(Text(Lines[LineIndex],14,PrimaryTextColor,TEXT("DetailBody")))->SetPadding(FMargin(0,3));
+                else Content->AddChildToVerticalBox(Text(Lines[LineIndex],13,PrimaryTextColor,TEXT("DetailBody")))->SetPadding(FMargin(0,3));
             }
         }
         if (UScrollBox* Scroll = Cast<UScrollBox>(Widget->GetWidgetFromName(TEXT("CardDetailsScroll")))) Scroll->ScrollToStart();

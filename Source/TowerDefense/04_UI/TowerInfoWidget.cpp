@@ -18,6 +18,8 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/Widget.h"
+#include "Components/WrapBox.h"
+#include "Engine/Texture2D.h"
 #include "Blueprint/WidgetTree.h"
 
 namespace
@@ -52,8 +54,10 @@ namespace
 
 	void AddTagPills(UUserWidget* Owner, UVerticalBox* Parent, const FString& Line)
 	{
-		UHorizontalBox* Tags = Owner->WidgetTree->ConstructWidget<UHorizontalBox>(
-			UHorizontalBox::StaticClass(), MakeWidgetName(Owner, UHorizontalBox::StaticClass(), TEXT("TD_TagRow")));
+		// 태그가 많으면 패널 밖으로 밀려나므로 줄바꿈되는 WrapBox에 담는다.
+		UWrapBox* Tags = Owner->WidgetTree->ConstructWidget<UWrapBox>(
+			UWrapBox::StaticClass(), MakeWidgetName(Owner, UWrapBox::StaticClass(), TEXT("TD_TagRow")));
+		Tags->SetInnerSlotPadding(FVector2D(6.f, 4.f));
 		TArray<FString> Parts;
 		Line.ParseIntoArray(Parts, TEXT("·"), true);
 		for (FString Part : Parts)
@@ -64,9 +68,11 @@ namespace
 			UBorder* Pill = Owner->WidgetTree->ConstructWidget<UBorder>(
 				UBorder::StaticClass(), MakeWidgetName(Owner, UBorder::StaticClass(), TEXT("TD_TagPill")));
 			Pill->SetBrushColor(FLinearColor(0.12f, 0.17f, 0.25f, 1.f));
-			Pill->SetPadding(FMargin(9.f, 5.f));
-			Pill->SetContent(MakeDetailText(Owner, Part, 12, DetailCyanColor, TEXT("TD_TagText")));
-			Tags->AddChildToHorizontalBox(Pill)->SetPadding(FMargin(0.f, 2.f, 6.f, 2.f));
+			Pill->SetPadding(FMargin(8.f, 4.f));
+			UTextBlock* PillText = MakeDetailText(Owner, Part, 12, DetailCyanColor, TEXT("TD_TagText"));
+			PillText->SetAutoWrapText(false);
+			Pill->SetContent(PillText);
+			Tags->AddChildToWrapBox(Pill);
 		}
 		Parent->AddChildToVerticalBox(Tags)->SetPadding(FMargin(0.f, 2.f));
 	}
@@ -77,14 +83,20 @@ namespace
 		UHorizontalBox* Row = Owner->WidgetTree->ConstructWidget<UHorizontalBox>(
 			UHorizontalBox::StaticClass(), MakeWidgetName(Owner, UHorizontalBox::StaticClass(), TEXT("TD_DetailRow")));
 		Row->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		// 값이 길어도 패널 폭 안에서 줄바꿈되도록 라벨·값 모두 비율 폭(55:45)을 준다.
 		UTextBlock* LabelText = MakeDetailText(Owner, Label, 13, DetailMutedColor, TEXT("TD_DetailLabel"));
-		Row->AddChildToHorizontalBox(LabelText)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		FSlateChildSize LabelSize(ESlateSizeRule::Fill);
+		LabelSize.Value = 0.55f;
+		Row->AddChildToHorizontalBox(LabelText)->SetSize(LabelSize);
 
 		UTextBlock* ValueText = MakeDetailText(Owner, Value, 13,
 			bEmphasize ? DetailGoldColor : DetailTextColor, TEXT("TD_DetailValue"), bEmphasize);
 		ValueText->SetJustification(ETextJustify::Right);
-		ValueText->SetAutoWrapText(false);
-		Row->AddChildToHorizontalBox(ValueText)->SetPadding(FMargin(10.f, 0.f, 0.f, 0.f));
+		UHorizontalBoxSlot* ValueSlot = Row->AddChildToHorizontalBox(ValueText);
+		FSlateChildSize ValueSize(ESlateSizeRule::Fill);
+		ValueSize.Value = 0.45f;
+		ValueSlot->SetSize(ValueSize);
+		ValueSlot->SetPadding(FMargin(10.f, 0.f, 0.f, 0.f));
 		Parent->AddChildToVerticalBox(Row)->SetPadding(FMargin(0.f, 3.f));
 	}
 
@@ -149,10 +161,42 @@ namespace
 		UBorder* Card = Owner->WidgetTree->ConstructWidget<UBorder>(
 			UBorder::StaticClass(), MakeWidgetName(Owner, UBorder::StaticClass(), TEXT("TD_StatCard")));
 		Card->SetBrushColor(DetailRowColor);
-		Card->SetPadding(FMargin(10.f, 8.f));
-		Card->SetContent(Row);
+		Card->SetPadding(FMargin(8.f, 7.f));
+
+		// 카드 왼쪽에 해당 스탯의 업그레이드 아이콘 자리를 둔다(이미지는 RefreshInfo에서 지정).
+		UHorizontalBox* CardRow = Owner->WidgetTree->ConstructWidget<UHorizontalBox>(
+			UHorizontalBox::StaticClass(), MakeWidgetName(Owner, UHorizontalBox::StaticClass(), TEXT("TD_StatCardRow")));
+		USizeBox* IconSize = Owner->WidgetTree->ConstructWidget<USizeBox>(
+			USizeBox::StaticClass(), MakeWidgetName(Owner, USizeBox::StaticClass(), TEXT("TD_StatIconSize")));
+		IconSize->SetWidthOverride(26.f);
+		IconSize->SetHeightOverride(26.f);
+		UImage* Icon = Owner->WidgetTree->ConstructWidget<UImage>(
+			UImage::StaticClass(), FName(*FString::Printf(TEXT("TD_StatIcon_%s"), WidgetName)));
+		Icon->SetVisibility(ESlateVisibility::Collapsed);
+		IconSize->SetContent(Icon);
+		UHorizontalBoxSlot* IconSlot = CardRow->AddChildToHorizontalBox(IconSize);
+		IconSlot->SetVerticalAlignment(VAlign_Center);
+		IconSlot->SetPadding(FMargin(0.f, 0.f, 7.f, 0.f));
+		CardRow->AddChildToHorizontalBox(Row)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		Card->SetContent(CardRow);
 		Parent->InsertChildAt(Index, Card, SlotTemplate);
 	}
+
+	// 스탯 카드 아이콘. Path가 비면 숨긴다.
+	void SetStatIcon(UUserWidget* Owner, const TCHAR* RowName, const TCHAR* Path)
+	{
+		UImage* Icon = Cast<UImage>(Owner->GetWidgetFromName(FName(*FString::Printf(TEXT("TD_StatIcon_%s"), RowName))));
+		if (!Icon) return;
+		UTexture2D* Texture = Path ? LoadObject<UTexture2D>(nullptr, Path) : nullptr;
+		if (Texture && Icon->GetBrush().GetResourceObject() != Texture) Icon->SetBrushFromTexture(Texture);
+		const ESlateVisibility Visibility = Texture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
+		if (Icon->GetVisibility() != Visibility) Icon->SetVisibility(Visibility);
+	}
+
+	const TCHAR* const IconAttackPhysical = TEXT("/Game/09_Textures/03_FantasyIcons/Upgrades/Icon_Upgrade_Attack_Physical.Icon_Upgrade_Attack_Physical");
+	const TCHAR* const IconAttackSpeed = TEXT("/Game/09_Textures/03_FantasyIcons/Upgrades/Icon_Upgrade_Attack_Speed.Icon_Upgrade_Attack_Speed");
+	const TCHAR* const IconAttackRange = TEXT("/Game/09_Textures/03_FantasyIcons/Upgrades/Icon_Upgrade_Attack_Range.Icon_Upgrade_Attack_Range");
+	const TCHAR* const IconBuffDuration = TEXT("/Game/09_Textures/03_FantasyIcons/Upgrades/Icon_Upgrade_Buff_Duration.Icon_Upgrade_Buff_Duration");
 }
 
 void UTowerInfoWidget::LevelUp()
@@ -261,7 +305,8 @@ void UTowerInfoWidget::BuildDetailsPanel(const FString& Details)
 		Marker->SetBrushColor(Accent);
 		MarkerSize->SetContent(Marker);
 		TitleRow->AddChildToHorizontalBox(MarkerSize)->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f));
-		TitleRow->AddChildToHorizontalBox(MakeDetailText(this, Heading, 13, DetailGoldColor, TEXT("TD_SectionTitle"), true));
+		TitleRow->AddChildToHorizontalBox(MakeDetailText(this, Heading, 13, DetailGoldColor, TEXT("TD_SectionTitle"), true))
+			->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 		Content->AddChildToVerticalBox(TitleRow)->SetPadding(FMargin(0.f, 0.f, 0.f, 7.f));
 
 		for (int32 LineIndex = 1; LineIndex < Lines.Num(); ++LineIndex)
@@ -371,6 +416,9 @@ void UTowerInfoWidget::RefreshInfo()
 		SetText(TEXT("TEXT_Range"), FString::Printf(TEXT("%.0f"), IsValid(OwnerTower) ? OwnerTower->GetRangeRadius() : Buff.BuffRadius));
 		SetText(TEXT("LBL_Type"), TEXT("적용 대상"));
 		SetText(TEXT("TEXT_Type"), Buff.BuffTarget == EBuffTarget::AllyTower ? TEXT("아군 타워") : TEXT("적"));
+		SetStatIcon(this, TEXT("StatRow_ATK"), nullptr);
+		SetStatIcon(this, TEXT("StatRow_ATK_SPEED"), IconBuffDuration);
+		SetStatIcon(this, TEXT("StatRow_Range"), IconAttackRange);
 
 		Info = Buff.BuffType == EBuffComponentType::Active ? TEXT("액티브 효과\n") : TEXT("지속 효과\n");
 		for (const FBuffEffect& Effect : Buff.BuffEffects) Info += EffectLine(Effect) + TEXT("\n");
@@ -398,6 +446,9 @@ void UTowerInfoWidget::RefreshInfo()
 		SetText(TEXT("TEXT_Range"), FString::Printf(TEXT("%.0f"), IsValid(OwnerTower) ? OwnerTower->GetRangeRadius() : 0.f));
 		SetText(TEXT("LBL_Type"), TEXT("타워 유형"));
 		SetText(TEXT("TEXT_Type"), TowerStat->TowerType);
+		SetStatIcon(this, TEXT("StatRow_ATK"), IconAttackPhysical);
+		SetStatIcon(this, TEXT("StatRow_ATK_SPEED"), IconAttackSpeed);
+		SetStatIcon(this, TEXT("StatRow_Range"), IconAttackRange);
 
 		Info = TEXT("공격 효과\n");
 		if (!TowerStat->TowerInfo.IsEmpty() && TowerStat->TowerInfo != TEXT("None"))
