@@ -40,5 +40,7 @@ void UMultiAttackComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 			return;
 		}
 		fireProjectile->TowerStatComponent = GetOwner()->GetComponentByClass<UTowerStatComponent>();
+		fireProjectile->HitEffect = HitEffect;
+		fireProjectile->HitColor = GetHitColor();
 	}
 }

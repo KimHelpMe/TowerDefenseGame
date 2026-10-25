@@ -27,6 +27,8 @@ void USingleAttackComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 	AProjectile* fireProjectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, FireMuzzleLocation, TargetRotation);
 	if (!fireProjectile) return;
 	fireProjectile->TowerStatComponent = GetOwner()->GetComponentByClass<UTowerStatComponent>();
+	fireProjectile->HitEffect = HitEffect;
+	fireProjectile->HitColor = GetHitColor();
 }
 
 

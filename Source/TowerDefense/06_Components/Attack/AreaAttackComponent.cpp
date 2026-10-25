@@ -7,6 +7,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "TowerStatComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "TowerDefenseGameMode.h"
 
 
@@ -72,8 +74,26 @@ void UAreaAttackComponent::ExecuteAttack(const TArray<AEnemy*>& Targets)
 		Enemy->ReceiveDamage(FinalDamage, TowerStat);
 	}
 
-	if (AreaEffect && OverlappedActors.Num() > 0)
+	if (OverlappedActors.Num() > 0)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), AreaEffect, Center);
+		SpawnAreaEffect(Center);
 	}
+}
+
+UNiagaraComponent* UAreaAttackComponent::SpawnAreaEffect(const FVector& Center) const
+{
+	if (!AreaEffect || !GetWorld()) return nullptr;
+
+	UNiagaraComponent* EffectComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), AreaEffect, Center);
+	if (!EffectComp) return nullptr;
+
+	// 이펙트에 지정된 Scale_All 기본값에 폭발 반경 비율을 곱해 범위만큼 넓게 펼친다.
+	static const FNiagaraVariable ScaleAllVar(FNiagaraTypeDefinition::GetFloatDef(), TEXT("User.Scale_All"));
+	const TOptional<float> DefaultScale = AreaEffect->GetExposedParameters().GetParameterOptionalValue<float>(ScaleAllVar);
+	if (DefaultScale.IsSet())
+	{
+		const float Radius = FMath::IsFinite(ExplosionRadius) ? FMath::Max(0.f, ExplosionRadius) : 0.f;
+		EffectComp->SetVariableFloat(TEXT("Scale_All"), DefaultScale.GetValue() * Radius / FMath::Max(1.f, AreaEffectBaseRadius));
+	}
+	return EffectComp;
 }

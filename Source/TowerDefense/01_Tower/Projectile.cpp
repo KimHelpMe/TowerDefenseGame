@@ -4,6 +4,7 @@
 #include "Enemy.h"
 #include "TowerStatComponent.h"
 #include "TowerDefenseGameMode.h"
+#include "AttackTypeComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 AProjectile::AProjectile()
@@ -71,6 +72,10 @@ void AProjectile::OnHit(UPrimitiveComponent* OverlappedComp,
 		const float DamageBonus = GameMode ? GameMode->GetAttackDamageBonus(TowerStatComponent) : 0.f;
 		float FinalDamage = TowerStatComponent->GetStat(TDTags::Stat_AttackDamage) * (1.f + DamageBonus);
 		enemy->ReceiveDamage(FinalDamage, TowerStatComponent);
+	}
+	if (IsValid(enemy))
+	{
+		UAttackTypeComponent::SpawnHitEffect(GetWorld(), HitEffect, enemy->GetActorLocation(), HitColor);
 	}
 	Destroy();
 }

@@ -6,6 +6,7 @@
 #include "AreaAttackComponent.generated.h"
 
 class UNiagaraSystem;
+class UNiagaraComponent;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class TOWERDEFENSE_API UAreaAttackComponent : public UAttackTypeComponent
@@ -25,7 +26,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0"))
 	float ExplosionRadius = 200.f;
 
+	// AreaEffect를 원래 크기(Scale_All 기본값)로 재생했을 때 덮는 반경(cm).
+	// 폭발 반경에 맞춰 이펙트를 넓게 펼치는 기준값.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "1"))
+	float AreaEffectBaseRadius = 150.f;
+
 public:
 
 	virtual void ExecuteAttack(const TArray<AEnemy*>& Targets) override;
+
+	// 폭발 반경에 맞춰 넓힌 AreaEffect를 재생.
+	UNiagaraComponent* SpawnAreaEffect(const FVector& Center) const;
 };

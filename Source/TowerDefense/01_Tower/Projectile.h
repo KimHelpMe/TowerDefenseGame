@@ -7,6 +7,7 @@
 #include "Projectile.generated.h"
 
 class UTowerStatComponent;
+class UNiagaraSystem;
 
 UCLASS()
 class TOWERDEFENSE_API AProjectile : public AActor
@@ -35,6 +36,12 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UTowerStatComponent> TowerStatComponent;
+
+	// 몬스터 피격 시 재생할 타격 이펙트와 색. 발사한 공격 컴포넌트가 지정한다.
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> HitEffect;
+
+	FLinearColor HitColor = FLinearColor::White;
 
 	UFUNCTION()
 	void OnProjectileStopped(const FHitResult& ImpactResult);
