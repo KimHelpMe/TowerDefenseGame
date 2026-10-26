@@ -42,11 +42,12 @@ float ABuffTower::GetRangeRadius()
                 BuffComponent = GetComponentByClass<UPassiveBuffComponent>();
             else if (Row->BuffSetting.BuffType == EBuffComponentType::Active)
                 BuffComponent = GetComponentByClass<UActiveBuffComponent>();
+
+            // 실제 버프가 적용되는 반경은 데이터 테이블의 BuffRadius이므로, BP의 BuffRange 기본값(300) 대신 이 값을 표시에 쓴다.
+            if (Row->BuffSetting.BuffRadius > 0.f) BuffRange = Row->BuffSetting.BuffRadius;
         }
     }
-	if (IsValid(BuffComponent) && BuffComponent->BuffRadius > 0.f)
-	{
-		return BuffComponent->BuffRadius;
-	}
+	if (BuffRange > 0.f) return BuffRange;
+	if (IsValid(BuffComponent) && BuffComponent->BuffRadius > 0.f) return BuffComponent->BuffRadius;
 	return IsValid(BuffRangeComponent) ? BuffRangeComponent->GetScaledSphereRadius() : 0.f;
 }
