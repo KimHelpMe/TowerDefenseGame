@@ -38,6 +38,8 @@
 #include "EnemyDataRow.h"
 #include "TowerDataRow.h"
 #include "SynergyDataRow.h"
+#include "ElementalDataRow.h"
+#include "DefenseTypeDataRow.h"
 #include "EpicTowerDataRow.h"
 
 namespace
@@ -83,6 +85,7 @@ namespace
 				CheckSingleTowerInfo();      // P1-15
 				CheckSplitSpacing();         // P1-16
 				CheckNegativeDamage();       // P1-17
+				CheckChaosDamageBypassesMatchups();
 				CheckBossPhases();           // P1-18
 				SetupExplosionRadius();      // P1-19② (overlap query is checked next step)
 				CheckPassiveInterval();      // P1-19③
@@ -491,6 +494,79 @@ namespace
 			Boss->ReceiveDamage(950.f, nullptr);
 			Test->TestEqual(TEXT("[P1-18] One hit from above 50% to below 10% reaches phase 3"), Ability->CurrentPhase, 3);
 			Boss->Destroy();
+		}
+
+		void CheckChaosDamageBypassesMatchups()
+		{
+			if (!GameMode.IsValid()) return;
+
+			UDataTable* SavedDefenseTable = GameMode->DefenseTypeDataTable;
+			UDataTable* SavedElementalTable = GameMode->ElementalDataTable;
+
+			UDataTable* DefenseTable = NewObject<UDataTable>(GetTransientPackage());
+			DefenseTable->RowStruct = FDefenseTypeDataRow::StaticStruct();
+			FDefenseTypeDataRow DivineDefense{};
+			DivineDefense.PhysicalMultiplier = 0.25f;
+			DivineDefense.MagicMultiplier = 0.5f;
+			DivineDefense.ChaosMultiplier = 1.5f;
+			DefenseTable->AddRow(FName(TEXT("DefenseType.Divine")), DivineDefense);
+
+			UDataTable* ElementalTable = NewObject<UDataTable>(GetTransientPackage());
+			ElementalTable->RowStruct = FElementalDataRow::StaticStruct();
+			const FGameplayTag FireTag = UStatComponent::GetTag(TEXT("Element.Fire"));
+			FElementalDataRow FireRow{};
+			FireRow.Multipliers.Add(FireTag, 0.5f);
+			ElementalTable->AddRow(FName(TEXT("Element.Fire")), FireRow);
+
+			GameMode->DefenseTypeDataTable = DefenseTable;
+			GameMode->ElementalDataTable = ElementalTable;
+
+			const FTransform Transform(TestLocation(12000.f));
+			AEnemy* Enemy = World->SpawnActorDeferred<AEnemy>(AEnemy::StaticClass(), Transform);
+			if (!Test->TestNotNull(TEXT("[Chaos] Enemy spawned"), Enemy))
+			{
+				GameMode->DefenseTypeDataTable = SavedDefenseTable;
+				GameMode->ElementalDataTable = SavedElementalTable;
+				return;
+			}
+
+			UEnemyStatComponent* EnemyStats = NewObject<UEnemyStatComponent>(Enemy, TEXT("ChaosTestEnemyStats"));
+			Enemy->AddInstanceComponent(EnemyStats);
+			EnemyStats->DefenseTypes.AddTag(UStatComponent::GetTag(TEXT("DefenseType.Divine")));
+			EnemyStats->Elements.AddTag(FireTag);
+			EnemyStats->ElementResistRate.Add(FireTag, 0.5f);
+			EnemyStats->SetBaseStat(UStatComponent::GetTag(TEXT("Stat.MaxHP")), 1000.f);
+			EnemyStats->SetBaseStat(UStatComponent::GetTag(TEXT("Stat.HP")), 1000.f);
+			EnemyStats->SetBaseStat(UStatComponent::GetTag(TEXT("Stat.Defense")), 100.f);
+			EnemyStats->RegisterComponent();
+			Enemy->FinishSpawning(Transform);
+
+			UStatComponent* AttackerStats = NewObject<UStatComponent>(Enemy, TEXT("ChaosTestAttackerStats"));
+			AttackerStats->AttackTypes.AddTag(UStatComponent::GetTag(TEXT("AttackTypes.Chaos")));
+			AttackerStats->Elements.AddTag(FireTag);
+
+			const float DefensePenetration = GameMode->GetUpgradeBonus(TDTags::Upgrade_DefensePenetration);
+			const float EffectiveDefense = FMath::Max(0.f, 100.f * (1.f - DefensePenetration));
+			const float ArmorMultiplier = 100.f / (100.f + EffectiveDefense);
+			Enemy->ReceiveDamage(100.f, AttackerStats);
+			Test->TestTrue(TEXT("[Chaos] Type, element matchup and resistance are ignored while numeric defense remains"),
+				FMath::IsNearlyEqual(EnemyStats->GetStat(UStatComponent::GetTag(TEXT("Stat.HP"))),
+					1000.f - 100.f * ArmorMultiplier, 0.01f));
+
+			EnemyStats->SetBaseStat(UStatComponent::GetTag(TEXT("Stat.HP")), 1000.f);
+			AttackerStats->AttackTypes.Reset();
+			AttackerStats->AttackTypes.AddTag(UStatComponent::GetTag(TEXT("AttackTypes.Physical")));
+			const float FireResistancePenetration = GameMode->GetUpgradeBonus(
+				UStatComponent::GetTag(TEXT("Upgrade.ElementPenetration.Fire")));
+			Enemy->ReceiveDamage(100.f, AttackerStats);
+			Test->TestTrue(TEXT("[Chaos] Physical control still applies element, type and resistance multipliers"),
+				FMath::IsNearlyEqual(EnemyStats->GetStat(UStatComponent::GetTag(TEXT("Stat.HP"))),
+					1000.f - 100.f * 0.5f * 0.25f * ArmorMultiplier
+						* (1.f - FMath::Max(0.f, 0.5f - FireResistancePenetration)), 0.01f));
+
+			Enemy->Destroy();
+			GameMode->DefenseTypeDataTable = SavedDefenseTable;
+			GameMode->ElementalDataTable = SavedElementalTable;
 		}
 
 		AEnemy* SpawnTestEnemy(const FVector& Location, bool bAir)

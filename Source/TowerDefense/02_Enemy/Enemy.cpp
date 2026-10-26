@@ -107,10 +107,13 @@ void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 
 	if (AttackerStat && EnemyStatComponent)
 	{
+		// Chaos는 방어 유형 및 속성 상성·저항을 무시한다. 숫자 방어력은 아래에서 계속 적용한다.
+		const bool bIgnoresMatchups = AttackerStat->AttackTypes.HasTag(TDTags::AttackTypes_Chaos);
+
 		// ElementalMultiplier.
 		float ElementalMultiplier = 1.0f;
 		
-		if (GameMode && GameMode->ElementalDataTable)
+		if (!bIgnoresMatchups && GameMode && GameMode->ElementalDataTable)
 		{
 			for (FGameplayTag AttackTag : AttackerStat->Elements)
 			{
@@ -138,7 +141,7 @@ void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 
 		float DefenseMultiplier = 1.0f;
 
-		if (GameMode && GameMode->DefenseTypeDataTable)
+		if (!bIgnoresMatchups && GameMode && GameMode->DefenseTypeDataTable)
 		{
 			for (FGameplayTag DefenseTag : EnemyStatComponent->DefenseTypes)
 			{
@@ -151,8 +154,6 @@ void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 					DefenseMultiplier *= Row->PhysicalMultiplier;
 				else if (AttackerStat->AttackTypes.HasTag(TDTags::AttackTypes_Magic))
 					DefenseMultiplier *= Row->MagicMultiplier;
-				else if (AttackerStat->AttackTypes.HasTag(TDTags::AttackTypes_Chaos))
-					DefenseMultiplier *= Row->ChaosMultiplier;
 			}
 		}
 		FinalDamage *= DefenseMultiplier;
@@ -163,16 +164,19 @@ void AEnemy::ReceiveDamage(float AmountDamage, UStatComponent* AttackerStat)
 		float EffectiveDefense = FMath::Max(0.f, EnemyStatComponent->GetStat(TDTags::Stat_Defense) * (1.f - DefPenetration));
 		FinalDamage = FinalDamage * (100.f / (100.f + EffectiveDefense));
 
-		// 속성 내성 관통 적용
-		for (auto& Elem : EnemyStatComponent->ElementResistRate)
+		// 속성 내성 관통 적용. Chaos는 속성 저항도 무시한다.
+		if (!bIgnoresMatchups)
 		{
-			if (AttackerStat->Elements.HasTag(Elem.Key))
+			for (auto& Elem : EnemyStatComponent->ElementResistRate)
 			{
-				FString TagName = Elem.Key.GetTagName().ToString();
-				FString LastPart = TagName.Contains(".") ? TagName.RightChop(TagName.Find(".") + 1) : TagName;
-				FGameplayTag PenTag = UStatComponent::GetTag(("Upgrade.ElementPenetration." + LastPart));
-				float Penetration = GameMode ? GameMode->GetUpgradeBonus(PenTag) : 0.f;
-				FinalDamage *= (1.f - FMath::Max(0.f, Elem.Value - Penetration));
+				if (AttackerStat->Elements.HasTag(Elem.Key))
+				{
+					FString TagName = Elem.Key.GetTagName().ToString();
+					FString LastPart = TagName.Contains(".") ? TagName.RightChop(TagName.Find(".") + 1) : TagName;
+					FGameplayTag PenTag = UStatComponent::GetTag(("Upgrade.ElementPenetration." + LastPart));
+					float Penetration = GameMode ? GameMode->GetUpgradeBonus(PenTag) : 0.f;
+					FinalDamage *= (1.f - FMath::Max(0.f, Elem.Value - Penetration));
+				}
 			}
 		}
 		UE_LOG(LogTowerDefense, Verbose, TEXT("FinalDamage: %f"), FinalDamage);
