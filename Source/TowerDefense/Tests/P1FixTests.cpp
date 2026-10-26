@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
+#include "TowerDefenseTags.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/TextBlock.h"
 #include "MainMenuWidget.h"
