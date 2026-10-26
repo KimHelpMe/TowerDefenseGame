@@ -48,8 +48,21 @@ namespace
             CardSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
             CardSlot->SetPadding(FMargin(Index>0 ? 5.f : 0.f,0.f,Index<Stats.Num()-1 ? 5.f : 0.f,0.f));
         }
-        const int32 LegacyIndex=Parent->GetChildIndex(Legacy);
-        Parent->InsertChildAt(LegacyIndex+1,Row);
+        // 이미 만들어진 위젯에서는 InsertChildAt이 실제 Slate 순서에 반영되지 않아 맨 아래로 붙는다.
+        // 자식을 슬롯 설정째로 떼었다가 ResultStats 바로 뒤에 카드 줄을 끼워 다시 붙인다.
+        TArray<TPair<UWidget*,UPanelSlot*>> Children;
+        for (int32 Index=0;Index<Parent->GetChildrenCount();++Index)
+        {
+            UWidget* Child=Parent->GetChildAt(Index);
+            Children.Add({Child,Child->Slot});
+            if (Child==Legacy) Children.Add({Row,nullptr});
+        }
+        Parent->ClearChildren();
+        for (const TPair<UWidget*,UPanelSlot*>& Child:Children)
+        {
+            if (Child.Value) Parent->AddChild(Child.Key,Child.Value);
+            else Parent->AddChild(Child.Key);
+        }
         Legacy->SetVisibility(ESlateVisibility::Collapsed);
     }
 }
