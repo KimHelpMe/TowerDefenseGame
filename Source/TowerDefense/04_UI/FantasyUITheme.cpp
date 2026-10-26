@@ -232,8 +232,24 @@ namespace
 		bool bCardInfosBuilt = false;
 	};
 
+    // 시너지 태그가 카드마다 1줄/2줄로 달라 아래 상세 칸의 시작 높이가 어긋나므로, 태그 영역에 2줄 최소 높이를 준다.
+    void EnsureFixedTagArea(UUserWidget* Card)
+    {
+        UWidget* Tags = Card->GetWidgetFromName(TEXT("SynergyTagBox"));
+        UPanelWidget* Parent = Tags ? Tags->GetParent() : nullptr;
+        if (!Parent || Parent->IsA<USizeBox>()) return;
+        const int32 Index = Parent->GetChildIndex(Tags);
+        UPanelSlot* SlotTemplate = Tags->Slot;
+        if (Index == INDEX_NONE || !Parent->RemoveChildAt(Index)) return;
+        USizeBox* Area = Card->WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("TD_TagArea"));
+        Area->SetMinDesiredHeight(78.f);
+        Area->SetContent(Tags);
+        Parent->InsertChildAt(Index, Area, SlotTemplate);
+    }
+
     void ApplyGachaCard(UUserWidget* Widget, FThemePass& Pass)
     {
+        EnsureFixedTagArea(Widget);
         AGachaManager* Manager = Pass.GetGachaManager(Widget);
         FIntProperty* IndexProperty = FindFProperty<FIntProperty>(Widget->GetClass(), TEXT("CardIndex"));
         if (!Manager || !IndexProperty) return;

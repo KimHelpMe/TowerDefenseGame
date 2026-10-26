@@ -273,22 +273,13 @@ void UTowerInfoWidget::BuildDetailsPanel(const FString& Details)
 
 		const FString Heading = Lines[0].TrimStartAndEnd();
 		const bool bIsSynergy = Heading.Contains(TEXT("시너지"));
-		const bool bIsUpgrade = Heading.StartsWith(TEXT("다음 강화")) || Heading == TEXT("최대 레벨");
-		const FLinearColor Accent = bIsSynergy ? DetailVioletColor : (bIsUpgrade ? DetailGoldColor : DetailCyanColor);
+		const FLinearColor Accent = bIsSynergy ? DetailVioletColor : DetailCyanColor;
 
 		UBorder* SectionCard = WidgetTree->ConstructWidget<UBorder>(
 			UBorder::StaticClass(), MakeWidgetName(this, UBorder::StaticClass(), TEXT("TD_DetailSection")));
-		SectionCard->SetBrushColor(bIsUpgrade ? FLinearColor(.12f, .095f, .045f, .98f) : DetailPanelColor);
-		SectionCard->SetPadding(FMargin(11.f, bIsUpgrade ? 9.f : 10.f));
+		SectionCard->SetBrushColor(DetailPanelColor);
+		SectionCard->SetPadding(FMargin(11.f, 10.f));
 		DetailedEffectsPanel->AddChildToVerticalBox(SectionCard)->SetPadding(FMargin(0.f, 0.f, 0.f, 7.f));
-
-		if (bIsUpgrade)
-		{
-			UTextBlock* UpgradeText = MakeDetailText(this, Heading, 13, DetailGoldColor, TEXT("TD_UpgradeText"), true);
-			UpgradeText->SetJustification(ETextJustify::Center);
-			SectionCard->SetContent(UpgradeText);
-			continue;
-		}
 
 		UVerticalBox* Content = WidgetTree->ConstructWidget<UVerticalBox>(
 			UVerticalBox::StaticClass(), MakeWidgetName(this, UVerticalBox::StaticClass(), TEXT("TD_SectionContent")));
@@ -475,9 +466,7 @@ void UTowerInfoWidget::RefreshInfo()
 			Bonuses += FString::Printf(TEXT("%s %.2f (%+.2f)\n"), *TowerUI::TagName(Stat.Key), Stat.Value, Diff);
 	}
 	if (!Bonuses.IsEmpty()) Info += TEXT("\n기본 대비 보너스\n") + Bonuses;
-	Info += TowerStat->CurrentLevel < TowerStat->MaxLevel
-		? FString::Printf(TEXT("\n\n다음 강화 · %.0f G"), TowerStat->GetNextLevelGoldCost())
-		: TEXT("\n\n최대 레벨");
+	// 다음 강화 비용·최대 레벨은 강화 버튼(TEXT_UpgradeCost)에 표시하므로 상세 패널에는 넣지 않는다.
 
 	if (Info != LastRenderedDetails)
 	{
