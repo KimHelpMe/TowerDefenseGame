@@ -1,61 +1,109 @@
-# TowerDefense
+# TowerDefenseGame
 
-Unreal Engine 5.3과 C++로 개발을 시작해, UE 5.8에서 C++ Editor 타깃 빌드를 확인한 1인 로그라이크 타워 디펜스 프로젝트입니다.
-타워를 뽑고 지정된 슬롯에 배치하며, 속성과 시너지 조합을 구성하는 프로토타입입니다.
+**타워를 뽑고 배치해 웨이브를 막는 3D 로그라이크 타워 디펜스 프로토타입**
+
+> 엄태호 · 1인 개발 · 게임플레이 프로그래머 · 2026.05.18–2026.06.14
+
+<p align="center">
+  <img src="assets/gameplay.jpg" alt="TowerDefenseGame 전투 화면: 타워 배치, 시너지, HUD, 피해 정보" width="100%" />
+  <br />
+  <sub>최종 포트폴리오 PPTX에 포함된 플레이 화면 캡처</sub>
+</p>
 
 | 항목 | 내용 |
 | --- | --- |
-| 개발자 | 엄태호 / KimHelpMe |
-| 개발 기간 | 2026.05.18 ~ 2026.06.14 |
-| 개발 인원 | 1명 |
-| 엔진 / 언어 | Unreal Engine 5.3 (개발) / 5.8 (빌드 확인) / C++ |
-| 대상 플랫폼 | PC |
+| 개발 형태 | 개인 프로젝트, 1명 |
+| 담당 | 게임 규칙·GDD 기록, C++ 게임플레이 시스템, UI 연동 |
+| 개발 기간 | 2026.05.18–2026.06.14 |
+| 엔진 / 언어 | Unreal Engine 5.3으로 개발 시작, UE 5.8에서 C++ Editor 타깃 빌드 확인 / C++ |
+| 플랫폼 | PC |
+| 개발 기록 | 기능별 Git 커밋 이력은 없음. 날짜별 GDD와 작업 파일을 바탕으로 구현 범위를 정리 |
 
-이 저장소는 기존 로컬 프로젝트의 현재 보관 상태를 가져온 것입니다.
-개발 당시에는 Git에 작업 내용을 업로드하지 않았으므로, 기능별 개발 시점의 커밋 이력을 재현하지 않았습니다.
+## 포트폴리오 자료
 
-## 코드에서 확인할 수 있는 주요 구현
+- **최종 플레이 영상:** 외부 공개 링크를 추가할 위치입니다. 영상 파일은 저장소에 포함하지 않았습니다.
+- **포트폴리오 PDF:** 공개 링크를 추가할 위치입니다.
+- **소스 코드:** [TowerDefenseGame GitHub 저장소](https://github.com/KimHelpMe/TowerDefenseGame)
 
-- **타워 전투**: 타이머 또는 마나 충족 이벤트로 공격을 시작하고, 단일·멀티·범위 공격 컴포넌트에 실행을 위임합니다.
-- **가챠와 슬롯**: 슬롯별 뽑기 결과와 리로드 횟수를 보관합니다. 가챠 포기 시 슬롯 수와 타일 점유 상태를 해제합니다.
-- **스탯과 버프**: `BaseStats`, `CurrentStats`, `ActiveBuffs`를 분리하고 효과의 `Source`를 기준으로 제거 후 재계산합니다.
-- **데이터 기반 전투**: DataTable에서 타워·적 정보, 속성·방어 상성, 라운드 정보를 읽습니다. 분류와 조회에 GameplayTag를 사용합니다.
-- **조합과 보스**: 시너지 조건 집계, 에픽 타워 조건, 보스 HP에 따른 페이즈 전환과 부하 소환 코드가 있습니다.
-- **UI 연동**: 마나·재화·경험치 등의 변경 이벤트와 UMG/Blueprint 위젯을 연결합니다.
+## 프로젝트와 플레이 흐름
 
-## 공개 범위
+전장 타일에 슬롯을 만들고, 가챠에서 타워를 선택해 설치합니다. 타워의 공격 방식과 속성, 적의 방어 타입, 필드 타워의 시너지 구성을 이용해 웨이브를 방어하는 구조입니다.
 
-이 저장소는 **포트폴리오용 소스 공개본**입니다. 전체 실행 프로젝트의 백업은 아닙니다.
+최종 영상은 다음 순서로 기능을 보여줍니다.
 
-- 공개: `Source/`, `Config/`, `TowerDefense.uproject`, 개발·복원 안내 문서.
-- 공개 제외: `Content/` 전체, 외부 에셋 원본 ZIP, 로컬 아트 파일, `Saved`와 생성 파일.
-- `Content/`에는 직접 만든 Blueprint·UI·DataTable과 외부 에셋이 섞여 있습니다. 출처와 재배포 조건을 분리해 확인하기 전까지 함께 제외합니다.
-- 전체 `Content/`를 포함한 기존 프로젝트 원본과 작업 사본은 로컬에 보존합니다.
+1. 메인 HUD: 골드, 타워 토큰, 슬롯 수, 라운드와 남은 시간, 플레이어 경험치, 기지 HP, 시너지 정보
+2. 그리드 타일 선택과 타워 슬롯 설치
+3. 가챠 카드 선택, 리로드, 포기 처리
+4. 단일·다중·범위 공격과 마나 기반 공격
+5. 타워 상세 정보와 시너지 단계 표시
+6. 속성·방어 타입 상성과 피격 정보
+7. 적 스폰, 보스 페이즈 전환과 부하 소환
+8. Purge / Heal 액션 시연
 
-**이 저장소만 복제하면 기본 맵과 Blueprint·에셋이 없어 게임을 바로 실행할 수 없습니다.**
-필요한 폴더와 복원 순서는 [외부 에셋 및 Content 복원 안내](Docs/Content-Restoration.md)에 정리했습니다.
+## 구현에서 확인할 수 있는 설계
 
-## 소스 받기
+### 타워 타깃과 공격 방식 분리
+
+타워는 사거리 오버랩으로 유효 대상을 관리하고, 공격 발동 뒤 공통 `AttackTypeComponent`에 현재 타깃 목록을 전달합니다. 단일·다중·범위 공격은 각각의 컴포넌트가 처리하므로 타워의 발동 조건과 공격 형식을 분리할 수 있습니다.
+
+- `ATargetingTower::Attack_Implementation()` — 대상 목록을 정리하고 공격 컴포넌트에 위임
+- `USingleAttackComponent::ExecuteAttack()` — 첫 번째 유효 대상을 향해 발사체 생성
+- 코드: [`TargetingTower.cpp`](Source/TowerDefense/01_Tower/TargetingTower.cpp), [`SingleAttackComponent.cpp`](Source/TowerDefense/06_Components/Attack/SingleAttackComponent.cpp)
+
+### 마나가 찼을 때 공격 발동
+
+`UManaComponent`의 마나 충족 이벤트를 `AMagicTower`가 구독합니다. 공격 대상과 필수 컴포넌트가 유효할 때만 마나를 소모하고 공격을 시작해, 마나 타워의 발동 조건을 일반 타이머 기반 타워와 구분합니다.
+
+- `AMagicTower::BeginPlay()`, `AMagicTower::OnManaFull()`
+- 코드: [`MagicTower.cpp`](Source/TowerDefense/01_Tower/MagicTower.cpp), [`ManaComponent.cpp`](Source/TowerDefense/06_Components/Mana/ManaComponent.cpp)
+
+### 가챠 포기와 슬롯 상태 복구
+
+가챠를 포기할 수 있는 상태인지 확인한 뒤 창을 닫고, 점유 중이던 타일과 슬롯 카운트를 함께 복구합니다. 액터만 제거해 설치 상태가 남는 문제를 막는 처리입니다.
+
+- `AGachaManager::Reload()`, `AGachaManager::AbandonGacha()`
+- 코드: [`GachaManager.cpp`](Source/TowerDefense/05_Gacha/GachaManager.cpp)
+
+### DataTable과 Gameplay Tag를 이용한 피해·시너지 계산
+
+적의 피해 처리에서는 공격 속성과 적의 방어 타입 배율을 조회하고, 방어력·속성 저항을 반영한 뒤 실드와 HP에 적용합니다. 시너지는 필드 타워의 Gameplay Tag를 집계해 DataTable의 단계 조건과 비교하고, 단계 효과를 각 타워의 버프에 반영합니다.
+
+- `AEnemy::ReceiveDamage()` — 속성·방어 타입·방어력·저항·실드 순서로 피해 처리
+- `ASynergyManager::UpdateSynergies()` — 태그 수와 DataTable 단계에 따라 버프 갱신 및 UI 알림
+- 코드: [`Enemy.cpp`](Source/TowerDefense/02_Enemy/Enemy.cpp), [`SynergyManager.cpp`](Source/TowerDefense/03_Core/SynergyManager.cpp)
+
+### 보스 페이즈와 경로를 잇는 부하 소환
+
+보스의 페이즈가 바뀌면 능력 컴포넌트가 부하를 생성합니다. 소환된 적에게 보스의 스플라인 경로와 현재 경로 지점을 넘겨, 등장 위치부터 이동을 이어가도록 구성했습니다.
+
+- `UBossAbilityComponent::OnPhaseChanged()`, `UBossAbilityComponent::SpawnMinions()`
+- 코드: [`BossAbilityComponent.cpp`](Source/TowerDefense/06_Components/Enemy/BossAbilityComponent.cpp)
+
+## 공개 저장소 범위와 실행 안내
+
+이 저장소는 **포트폴리오용 C++ 소스 공개본**입니다. 전체 실행 프로젝트의 백업은 아닙니다.
+
+- 공개: `Source/`, `Config/`, `TowerDefense.uproject`, 문서
+- 제외: `Content/` 전체, 외부 에셋 원본, 로컬 아트 파일, 생성 파일
+- `Content/`에는 직접 만든 Blueprint·UI·DataTable과 외부 에셋이 함께 있어, 출처와 재배포 조건을 확인하기 전까지 공개하지 않습니다. 전체 원본은 로컬에 보존합니다.
+- 따라서 저장소를 복제한 상태만으로는 게임을 바로 실행할 수 없습니다. [Content 복원 안내](Docs/Content-Restoration.md)를 확인하고, 실행 권한이 있는 전체 프로젝트의 `Content/`를 준비해야 합니다.
+- UE 5.8의 `Development Editor` / `Win64` C++ 타깃 빌드를 확인했습니다. `Content/` 복원 뒤 에디터에서 플레이하는 단계는 확인되지 않았습니다.
+
+개발 당시 Git에 기능별 커밋을 남기지 않아, 공개 저장소는 로컬 최종 프로젝트의 원래 커밋 이력을 재현하지 않습니다. 최종 영상·PPTX와 공개 `main`의 소스 상태가 완전히 같다고 보장하지 않으며, 최종 자료에 포함된 일부 후반 수정은 공개 소스에 아직 반영되지 않았을 수 있습니다.
+
+### 로컬에서 준비하기
 
 ```bash
 git clone https://github.com/KimHelpMe/TowerDefenseGame.git
 cd TowerDefenseGame
 ```
 
-`.gitattributes`에는 향후 공개 권한이 확인된 자체 바이너리를 추가할 때 사용할 Git LFS 규칙을 준비했습니다.
-현재 공개 커밋에는 `Content/`와 그 LFS 객체를 업로드하지 않습니다.
-Git LFS를 쓰더라도 외부 에셋을 공개할 권한이 새로 생기는 것은 아닙니다.
-
-## 실행 준비
-
-1. Unreal Engine 5.8과 C++ 개발에 필요한 Visual Studio 도구를 준비합니다.
-2. 실행 권한이 있는 전체 로컬 프로젝트에서 `Content/`를 복원합니다. 공개 소스만 받은 상태로는 이 단계가 충족되지 않습니다.
+1. Unreal Engine 5.8과 Visual Studio C++ 개발 도구를 준비합니다.
+2. 실행 권한이 있는 프로젝트 원본에서 `Content/`를 복원합니다.
 3. `TowerDefense.uproject`에서 Visual Studio 프로젝트 파일을 생성합니다.
-4. 생성된 솔루션에서 `Development Editor` / `Win64` 대상으로 빌드합니다.
-5. `TowerDefense.uproject`를 Unreal Editor에서 엽니다.
+4. `Development Editor` / `Win64`로 빌드한 뒤 Unreal Editor에서 프로젝트를 엽니다.
 
-설정 파일의 기본 맵은 `/Game/00_Level/EmptyLevel`입니다.
-UE 5.8의 `Development Editor` / `Win64` C++ 타깃 빌드를 확인했습니다. Content 복원 후 에디터 실행과 플레이는 아직 확인하지 않았습니다.
+기본 맵 설정은 `/Game/00_Level/EmptyLevel`입니다. 공개 소스만으로 맵·Blueprint·에셋을 복원할 수는 없습니다.
 
 ## 폴더 구조
 
@@ -63,27 +111,24 @@ UE 5.8의 `Development Editor` / `Win64` C++ 타깃 빌드를 확인했습니다
 Config/                   프로젝트 설정과 GameplayTag 설정
 Docs/                     공개 범위와 Content 복원 안내
 Source/TowerDefense/
-  01_Tower/               타워와 발사체
-  02_Enemy/               적과 스폰 시스템
-  03_Core/                진행, 그리드, 조합 관련 연동과 관리자
-  04_UI/                  위젯 연동 클래스
-  05_Gacha/               가챠, 슬롯, 업그레이드 아이템
-  06_Components/          공격, 버프, 스탯, 마나, 적 능력
+  01_Tower/               타워, 발사체, 공격 발동
+  02_Enemy/               적과 보스
+  03_Core/                게임 진행, 그리드, 시너지 관리자
+  04_UI/                  UI 연동 클래스
+  05_Gacha/               가챠, 슬롯, 선택 처리
+  06_Components/          공격, 마나, 스탯, 버프, 적 능력
   07_Data/                DataTable 행 구조체
 TowerDefense.uproject
 ```
 
-`Saved`, `Intermediate`, `Binaries`, `DerivedDataCache`, IDE 캐시와 생성된 솔루션은 버전 관리에서 제외합니다.
-이 파일들은 엔진과 IDE에서 다시 생성합니다.
+## 범위와 라이선스
 
-## 구현 범위
+30라운드 방어는 기획 목표입니다. 최종 승리 화면과 완주 결과를 확인할 자료는 공개 저장소에 포함하지 않았습니다. 메타 성장·저장 기능과 일부 사운드·이펙트 정리도 후속 작업 범위입니다.
 
-30라운드 방어는 기획 목표이며, 최종 승패 화면과 완주 결과를 검증한 자료는 아직 포함하지 않았습니다.
-메타 성장·저장 시스템과 일부 사운드·이펙트 정리는 후속 작업으로 남아 있습니다.
-같은 시너지 단계에 새로 합류하는 타워의 버프 적용, 복수 시너지의 효과 제거 범위, 큰 피해에 따른 보스 연속 페이즈 전환도 추가 검증 대상입니다.
+저장소에는 별도의 오픈소스 라이선스를 추가하지 않았으며, 이 공개가 외부 에셋의 재배포나 재사용 권한을 부여하지 않습니다. 각 에셋의 권리는 원래 배포처의 조건을 따릅니다.
 
-## 에셋 권리
+## 연락처
 
-원본 프로젝트에는 외부 에셋 팩이 포함되어 있지만, 공개 저장소에는 원본 에셋을 올리지 않습니다.
-이 저장소에 별도 오픈소스 라이선스를 추가하지 않았으며, 외부 에셋의 재배포·재사용 권한을 부여하지 않습니다.
-각 에셋은 원래 배포처의 라이선스를 따라야 합니다.
+- 엄태호 · 게임플레이 프로그래머
+- 이메일: [sssg2248@gmail.com](mailto:sssg2248@gmail.com)
+- GitHub: [@KimHelpMe](https://github.com/KimHelpMe)
