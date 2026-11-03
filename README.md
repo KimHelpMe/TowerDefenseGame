@@ -40,6 +40,73 @@
 7. 적 스폰, 보스 페이즈 전환과 부하 소환
 8. Purge / Heal 액션 시연
 
+## 기능별 이미지
+
+아래 장면은 최종 포트폴리오 PPTX에 들어간 게임 화면 캡처입니다. 마나 타워 이미지는 화면 캡처 대신 실제 코드 흐름을 도식화했습니다.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/features/hud.jpg" alt="골드, 토큰, 슬롯, 라운드, 경험치, 기지 HP가 표시된 메인 HUD" width="100%" />
+      <br /><strong>01 · 메인 HUD</strong><br />골드·타워 토큰·슬롯·라운드·남은 시간·경험치·기지 HP와 시너지 패널을 확인할 수 있습니다.
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/features/attack.jpg" alt="타워 사거리 원과 설치 타일이 보이는 플레이 장면" width="100%" />
+      <br /><strong>02 · 그리드 배치와 사거리</strong><br />타워 슬롯과 타일 배치 상태, 선택한 타워의 공격 범위를 함께 보여줍니다.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/features/gacha.jpg" alt="세 장의 가챠 카드와 Reload, Abandon 버튼" width="100%" />
+      <br /><strong>03 · 가챠 선택·리로드·포기</strong><br />세 가지 카드 선택지와 리로드 횟수, 포기 버튼이 표시됩니다.
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/features/targeting.jpg" alt="타워가 적을 공격하고 적 속성 및 방어 라벨을 표시하는 장면" width="100%" />
+      <br /><strong>04 · 타깃 공격</strong><br />사거리 안의 적을 향한 공격과 적의 속성·방어 라벨을 확인할 수 있습니다.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/features/area-attack.jpg" alt="보스전 화면에 나타난 범위 공격 이펙트" width="100%" />
+      <br /><strong>05 · 범위 공격 연출</strong><br />보스 전투 중 여러 공격 이펙트가 보이는 순간을 잘라 배치했습니다.
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/features/mana-flow.svg" alt="마나 충전 완료부터 대상 검사와 마나 소모, 공격까지의 코드 흐름" width="100%" />
+      <br /><strong>06 · 마나 타워 발동 흐름</strong><br />`OnManaFull` 이벤트에서 유효 대상을 확인한 뒤 마나를 소모하고 공격합니다.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/features/tower-info.jpg" alt="타워 이름, 능력치, 사거리, 태그, 강화 정보를 표시하는 상세 패널" width="100%" />
+      <br /><strong>07 · 타워 상세 정보</strong><br />선택 타워의 능력치와 공격 유형, 태그, 강화 및 적용 효과를 표시합니다.
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/features/synergy.jpg" alt="시너지 단계와 선택한 타워의 효과가 표시된 전투 화면" width="100%" />
+      <br /><strong>08 · 시너지 적용</strong><br />필드 타워 태그 집계와 단계별 효과가 시너지 패널·타워 정보에 표시됩니다.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/features/damage.jpg" alt="피해 숫자와 적의 속성, 방어 타입 라벨이 나타난 피격 장면" width="100%" />
+      <br /><strong>09 · 피해와 상성 표시</strong><br />피해 숫자와 적의 속성·방어 정보를 함께 확인할 수 있는 장면입니다.
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/features/boss.jpg" alt="30라운드 보스 Abyss Demon과 전투 중인 화면" width="100%" />
+      <br /><strong>10 · 보스 전투</strong><br />보스 HP와 전장 내 타워·적 전투가 보이는 최종 라운드 화면입니다.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/features/heal-purge.jpg" alt="Heal 및 Purge 버튼과 타이머 표시" width="100%" />
+      <br /><strong>11 · Heal / Purge 액션</strong><br />화면 오른쪽 아래의 회복·전멸 액션 버튼과 표시된 타이머를 보여줍니다.
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/gameplay.jpg" alt="HUD, 타워, 적, 시너지와 피해 표시가 함께 보이는 전체 전투 장면" width="100%" />
+      <br /><strong>전투 화면 종합</strong><br />타워 배치와 적 전투, HUD 정보를 한 장면에서 확인할 수 있습니다.
+    </td>
+  </tr>
+</table>
+
 ## 구현에서 확인할 수 있는 설계
 
 ### 타워 타깃과 공격 방식 분리

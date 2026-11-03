@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250" role="img" aria-labelledby="title desc">
+  <title id="title">마나 타워 공격 흐름</title>
+  <desc id="desc">마나 충전 완료 이벤트가 유효한 타깃을 확인하고 마나를 소모한 뒤 공격을 실행하는 흐름</desc>
+  <rect width="900" height="250" rx="22" fill="#142536"/>
+  <text x="42" y="48" fill="#FFFFFF" font-family="sans-serif" font-size="23" font-weight="700">마나 타워 발동 흐름 · MagicTower.cpp</text>
+  <g font-family="sans-serif" text-anchor="middle">
+    <rect x="38" y="92" width="184" height="104" rx="14" fill="#FFFFFF"/>
+    <text x="130" y="133" fill="#142536" font-size="18" font-weight="700">마나 충전</text>
+    <text x="130" y="162" fill="#536475" font-size="14">UManaComponent</text>
+    <path d="M231 144h36" stroke="#36B9B3" stroke-width="5"/>
+    <path d="m267 144-13-10v20z" fill="#36B9B3"/>
+    <rect x="278" y="92" width="184" height="104" rx="14" fill="#FFFFFF"/>
+    <text x="370" y="133" fill="#142536" font-size="18" font-weight="700">OnManaFull</text>
+    <text x="370" y="162" fill="#536475" font-size="14">이벤트 호출</text>
+    <path d="M471 144h36" stroke="#36B9B3" stroke-width="5"/>
+    <path d="m507 144-13-10v20z" fill="#36B9B3"/>
+    <rect x="518" y="92" width="160" height="104" rx="14" fill="#FFFFFF"/>
+    <text x="598" y="133" fill="#142536" font-size="18" font-weight="700">대상 검사</text>
+    <text x="598" y="162" fill="#536475" font-size="14">유효 대상일 때</text>
+    <path d="M687 144h36" stroke="#36B9B3" stroke-width="5"/>
+    <path d="m723 144-13-10v20z" fill="#36B9B3"/>
+    <rect x="734" y="92" width="130" height="104" rx="14" fill="#087F80"/>
+    <text x="799" y="133" fill="#FFFFFF" font-size="18" font-weight="700">ConsumeMana</text>
+    <text x="799" y="162" fill="#D8F3F1" font-size="14">→ Attack()</text>
+  </g>
+</svg>
