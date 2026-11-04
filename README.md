@@ -23,7 +23,7 @@
 
 - **최종 플레이 영상:** (https://naver.me/FlBoBDJV)
 - **소스 코드:** [TowerDefenseGame GitHub 저장소](https://github.com/KimHelpMe/TowerDefenseGame)
-- **개인 포트폴리:** (https://naver.me/GDQABiKZ)
+- **개인 포트폴리오:** (https://naver.me/GDQABiKZ)
 ## 프로젝트와 플레이 흐름
 
 전장 타일에 슬롯을 만들고, 가챠에서 타워를 선택해 설치합니다. 타워의 공격 방식과 속성, 적의 방어 타입, 필드 타워의 시너지 구성을 이용해 웨이브를 방어하는 구조입니다.
